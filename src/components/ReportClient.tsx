@@ -91,7 +91,7 @@ export default function ReportClient({ user }: { user: AuthUser }) {
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs mb-1" style={{ color: 'var(--text-secondary)' }}>上午寄送時間</label>
+            <label className="block text-xs mb-1" style={{ color: 'var(--text-secondary)' }}>早上場寄送時間</label>
             <input
               type="time"
               value={form.am_time}
@@ -103,7 +103,7 @@ export default function ReportClient({ user }: { user: AuthUser }) {
             />
           </div>
           <div>
-            <label className="block text-xs mb-1" style={{ color: 'var(--text-secondary)' }}>下午寄送時間</label>
+            <label className="block text-xs mb-1" style={{ color: 'var(--text-secondary)' }}>下午場寄送時間</label>
             <input
               type="time"
               value={form.pm_time}
@@ -129,9 +129,9 @@ export default function ReportClient({ user }: { user: AuthUser }) {
       <div className="rounded-xl p-4" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}>
         <div className="text-sm font-medium text-white mb-2">寄送時程預覽</div>
         <div className="text-sm space-y-1" style={{ color: 'var(--text-secondary)' }}>
-          <div>• 上午場：每天 {form.am_time} 寄送</div>
+          <div>• 早上場：每天 {form.am_time} 寄送</div>
           <div>• 下午場：每天 {form.pm_time} 寄送</div>
-          <div className="mt-2 text-xs">內容包含：已回報/未回報廠商清單、回報人數統計</div>
+          <div className="mt-2 text-xs">內容包含：早上/下午/晚上場次，已回報/未回報廠商清單、回報人數統計</div>
         </div>
       </div>
       <div className="rounded-xl p-4 space-y-3" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}>
