@@ -35,6 +35,7 @@ export interface ReportConfig {
   enabled: boolean
   am_time: string
   pm_time: string
+  night_time: string
 }
 
 export interface ReportEmail {

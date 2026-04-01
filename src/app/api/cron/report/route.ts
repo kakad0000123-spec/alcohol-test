@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: '未授權' }, { status: 401 })
   }
 
-  const session = req.nextUrl.searchParams.get('session') as 'AM' | 'PM' || 'AM'
+  const session = req.nextUrl.searchParams.get('session') as 'AM' | 'PM' | 'Night' || 'AM'
   const date = getTodayDate()
   const db = createServerClient()
 
@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
   }
 
   const resend = new Resend(process.env.RESEND_API_KEY)
-  const sessionLabel = session === 'AM' ? '上午' : '下午'
+  const sessionLabel = session === 'AM' ? '早上' : session === 'PM' ? '下午' : '晚上'
 
   const html = `
 <!DOCTYPE html>
