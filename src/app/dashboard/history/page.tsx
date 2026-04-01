@@ -12,8 +12,11 @@ interface HistoryItem {
   amPhotoCount: number
   pmVendorCount: number
   pmPhotoCount: number
+  nightVendorCount: number
+  nightPhotoCount: number
   amVendors: VendorDetail[]
   pmVendors: VendorDetail[]
+  nightVendors: VendorDetail[]
 }
 
 export default function HistoryPage() {
@@ -100,19 +103,22 @@ export default function HistoryPage() {
                 </div>
                 <div className="text-sm space-y-0.5" style={{ color: 'var(--text-secondary)' }}>
                   {(item.amVendorCount > 0 || item.amPhotoCount > 0) && (
-                    <div>上午：{item.amVendorCount} 家廠商　{item.amPhotoCount} 人</div>
+                    <div>早上：{item.amVendorCount} 家廠商　{item.amPhotoCount} 人</div>
                   )}
                   {(item.pmVendorCount > 0 || item.pmPhotoCount > 0) && (
                     <div>下午：{item.pmVendorCount} 家廠商　{item.pmPhotoCount} 人</div>
                   )}
-                  {item.amVendorCount === 0 && item.pmVendorCount === 0 && <div>無回報紀錄</div>}
+                  {(item.nightVendorCount > 0 || item.nightPhotoCount > 0) && (
+                    <div>晚上：{item.nightVendorCount} 家廠商　{item.nightPhotoCount} 人</div>
+                  )}
+                  {item.amVendorCount === 0 && item.pmVendorCount === 0 && item.nightVendorCount === 0 && <div>無回報紀錄</div>}
                 </div>
               </button>
               {expanded === item.date && (
                 <div className="border-t px-4 pb-4 pt-3 space-y-3" style={{ borderColor: 'var(--border)' }}>
                   {item.amVendors.length > 0 && (
                     <div>
-                      <div className="text-xs font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>上午廠商明細</div>
+                      <div className="text-xs font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>早上廠商明細</div>
                       <div className="space-y-1">
                         {item.amVendors.map(v => (
                           <div key={v.name} className="flex items-center justify-between px-3 py-1.5 rounded-lg text-sm"
@@ -129,6 +135,20 @@ export default function HistoryPage() {
                       <div className="text-xs font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>下午廠商明細</div>
                       <div className="space-y-1">
                         {item.pmVendors.map(v => (
+                          <div key={v.name} className="flex items-center justify-between px-3 py-1.5 rounded-lg text-sm"
+                            style={{ background: 'var(--bg-primary)' }}>
+                            <span className="text-white">{v.name}</span>
+                            <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: '#0d2e1a', color: '#4ade80' }}>{v.count} 人</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {item.nightVendors.length > 0 && (
+                    <div>
+                      <div className="text-xs font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>晚上廠商明細</div>
+                      <div className="space-y-1">
+                        {item.nightVendors.map(v => (
                           <div key={v.name} className="flex items-center justify-between px-3 py-1.5 rounded-lg text-sm"
                             style={{ background: 'var(--bg-primary)' }}>
                             <span className="text-white">{v.name}</span>

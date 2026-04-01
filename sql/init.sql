@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS records (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   vendor_id UUID NOT NULL REFERENCES vendors(id) ON DELETE CASCADE,
   date DATE NOT NULL,
-  session TEXT NOT NULL CHECK (session IN ('AM', 'PM')),
+  session TEXT NOT NULL CHECK (session IN ('AM', 'PM', 'Night')),
   file_hash TEXT NOT NULL,
   file_path TEXT NOT NULL,
   uploaded_at TIMESTAMPTZ DEFAULT NOW(),

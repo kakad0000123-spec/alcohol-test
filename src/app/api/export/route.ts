@@ -44,7 +44,7 @@ export async function GET(req: NextRequest) {
   const aggMap: Record<string, { 日期: string; 廠商名稱: string; 時段: string; 張數: number }> = {}
   for (const r of records || []) {
     const vendorName = (r.vendor as unknown as { name: string } | null)?.name || r.vendor_id
-    const session = r.session === 'AM' ? '上午' : '下午'
+    const session = r.session === 'AM' ? '早上' : r.session === 'PM' ? '下午' : '晚上'
     const key = `${r.date}_${vendorName}_${session}`
     if (!aggMap[key]) {
       aggMap[key] = { 日期: r.date, 廠商名稱: vendorName, 時段: session, 張數: 0 }

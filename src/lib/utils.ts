@@ -1,7 +1,11 @@
 
-export function getCurrentSession(): 'AM' | 'PM' {
-  const hour = new Date().getHours()
-  return hour < 12 ? 'AM' : 'PM'
+export function getCurrentSession(): 'AM' | 'PM' | 'Night' {
+  const now = new Date()
+  // 台灣時區 UTC+8
+  const twHour = (now.getUTCHours() + 8) % 24
+  if (twHour >= 5 && twHour < 12) return 'AM'
+  if (twHour >= 12 && twHour < 17) return 'PM'
+  return 'Night'
 }
 
 export function formatDate(date: Date = new Date()): string {

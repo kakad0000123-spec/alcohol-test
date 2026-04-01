@@ -13,7 +13,8 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = req.nextUrl
   const date = searchParams.get('date') || getTodayDate()
-  const session = (searchParams.get('session') || 'AM').toUpperCase()
+  const rawSession = searchParams.get('session') || 'AM'
+  const session = rawSession === 'Night' ? 'Night' : rawSession.toUpperCase()
 
   const db = createServerClient()
 

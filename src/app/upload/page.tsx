@@ -5,8 +5,13 @@ import { getTodayDate, getCurrentSession, compressImage, hashFile } from '@/lib/
 import type { Record as AlcoholRecord } from '@/types'
 import PhotoViewer from '@/components/PhotoViewer'
 
+const SESSION_LABEL: Record<string, string> = {
+  AM: '早上（05:00–11:59）',
+  PM: '下午（12:00–16:59）',
+  Night: '晚上（17:00–04:59）',
+}
+
 export default function UploadPage() {
-  const [session, setSession] = useState<'AM' | 'PM'>(getCurrentSession())
   const date = getTodayDate()
   const [records, setRecords] = useState<AlcoholRecord[]>([])
   const [uploading, setUploading] = useState(false)
@@ -15,12 +20,13 @@ export default function UploadPage() {
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' | 'info' } | null>(null)
   const cameraRef = useRef<HTMLInputElement>(null)
   const galleryRef = useRef<HTMLInputElement>(null)
+  const currentSession = getCurrentSession()
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { fetchRecords() }, [session])
+  useEffect(() => { fetchRecords() }, [])
 
   async function fetchRecords() {
-    const res = await fetch(`/api/records?date=${date}&session=${session}`)
+    const res = await fetch(`/api/records?date=${date}`)
     const data = await res.json()
     if (res.status === 401) { window.location.href = '/'; return }
     if (res.ok) setRecords(data.records || [])
@@ -55,7 +61,6 @@ export default function UploadPage() {
         const formData = new FormData()
         formData.append('file', compressedFile)
         formData.append('date', date)
-        formData.append('session', session)
         formData.append('file_hash', fileHash)
 
         const res = await fetch('/api/records', { method: 'POST', body: formData })
@@ -111,30 +116,16 @@ export default function UploadPage() {
       </header>
 
       <main className="flex-1 flex flex-col p-4 gap-4 max-w-sm mx-auto w-full">
-        {/* 場次切換 */}
-        <div className="flex gap-3">
-          {(['AM', 'PM'] as const).map(s => (
-            <button
-              key={s}
-              onClick={() => !uploading && setSession(s)}
-              disabled={uploading}
-              className="flex-1 py-2.5 rounded-xl text-sm font-medium transition-all"
-              style={{
-                background: session === s ? 'var(--accent)' : 'var(--bg-secondary)',
-                color: session === s ? 'white' : 'var(--text-secondary)',
-                border: `1px solid ${session === s ? 'var(--accent)' : 'var(--border)'}`,
-              }}
-            >
-              {s === 'AM' ? '☀️ 上午場' : '🌆 下午場'}
-            </button>
-          ))}
+        {/* 目前場次（自動判定，僅顯示） */}
+        <div className="text-center py-2 rounded-xl text-sm" style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}>
+          目前場次：<span className="text-white font-medium">{SESSION_LABEL[currentSession]}</span>
         </div>
 
         {/* 已回報數量（大數字） */}
         <div className="text-center py-6 rounded-2xl" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}>
           <div className="text-6xl font-bold" style={{ color: '#00ff88' }}>{records.length}</div>
           <div className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
-            {session === 'AM' ? '上午' : '下午'}場已回報張數
+            今日已回報張數
           </div>
         </div>
 

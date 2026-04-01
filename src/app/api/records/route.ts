@@ -34,6 +34,14 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ records: data })
 }
 
+// 依台灣時間（UTC+8）自動判定場次
+function getSessionByTaiwanTime(): 'AM' | 'PM' | 'Night' {
+  const twHour = (new Date().getUTCHours() + 8) % 24
+  if (twHour >= 5 && twHour < 12) return 'AM'
+  if (twHour >= 12 && twHour < 17) return 'PM'
+  return 'Night'
+}
+
 // POST /api/records — 上傳照片
 export async function POST(req: NextRequest) {
   const user = await getAuthUserFromRequest(req)
@@ -45,12 +53,14 @@ export async function POST(req: NextRequest) {
     const formData = await req.formData()
     const file = formData.get('file') as File
     const date = formData.get('date') as string
-    const session = formData.get('session') as string
     const fileHash = formData.get('file_hash') as string
 
-    if (!file || !date || !session || !fileHash) {
+    if (!file || !date || !fileHash) {
       return NextResponse.json({ error: '缺少必要欄位' }, { status: 400 })
     }
+
+    // 依上傳時間自動判定場次（台灣時區 UTC+8）
+    const session = getSessionByTaiwanTime()
 
     const db = createServerClient()
 

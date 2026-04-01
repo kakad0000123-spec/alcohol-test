@@ -20,7 +20,7 @@ type FilterType = 'all' | 'reported' | 'not_reported'
 export default function DashboardClient({ user: _user }: { user: AuthUser }) {
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
-  const [session, setSession] = useState<'AM' | 'PM'>(getCurrentSession())
+  const [session, setSession] = useState<'AM' | 'PM' | 'Night'>(getCurrentSession())
   const [date] = useState(getTodayDate())
   const [filter, setFilter] = useState<FilterType>('all')
   const [expandedVendor, setExpandedVendor] = useState<string | null>(null)
@@ -57,7 +57,7 @@ export default function DashboardClient({ user: _user }: { user: AuthUser }) {
           <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>即時看板（每 30 秒更新）</p>
         </div>
         <div className="flex gap-2">
-          {(['AM', 'PM'] as const).map(s => (
+          {([['AM', '早上'], ['PM', '下午'], ['Night', '晚上']] as const).map(([s, label]) => (
             <button
               key={s}
               onClick={() => setSession(s)}
@@ -68,7 +68,7 @@ export default function DashboardClient({ user: _user }: { user: AuthUser }) {
                 border: `1px solid ${session === s ? 'var(--accent)' : 'var(--border)'}`,
               }}
             >
-              {s === 'AM' ? '上午' : '下午'}
+              {label}
             </button>
           ))}
         </div>
