@@ -3,7 +3,7 @@ export function getCurrentSession(): 'AM' | 'PM' | 'Night' {
   const now = new Date()
   // 台灣時區 UTC+8
   const twHour = (now.getUTCHours() + 8) % 24
-  if (twHour >= 5 && twHour < 12) return 'AM'
+  if (twHour >= 7 && twHour < 12) return 'AM'
   if (twHour >= 12 && twHour < 17) return 'PM'
   return 'Night'
 }

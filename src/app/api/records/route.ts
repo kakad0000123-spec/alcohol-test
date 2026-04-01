@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
 // 依台灣時間（UTC+8）自動判定場次
 function getSessionByTaiwanTime(): 'AM' | 'PM' | 'Night' {
   const twHour = (new Date().getUTCHours() + 8) % 24
-  if (twHour >= 5 && twHour < 12) return 'AM'
+  if (twHour >= 7 && twHour < 12) return 'AM'
   if (twHour >= 12 && twHour < 17) return 'PM'
   return 'Night'
 }

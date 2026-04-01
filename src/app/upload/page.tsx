@@ -6,9 +6,9 @@ import type { Record as AlcoholRecord } from '@/types'
 import PhotoViewer from '@/components/PhotoViewer'
 
 const SESSION_LABEL: Record<string, string> = {
-  AM: '早上（05:00–11:59）',
+  AM: '早上（07:00–11:59）',
   PM: '下午（12:00–16:59）',
-  Night: '晚上（17:00–04:59）',
+  Night: '晚上（17:00–06:59）',
 }
 
 export default function UploadPage() {
