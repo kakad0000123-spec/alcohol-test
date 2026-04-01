@@ -20,7 +20,7 @@ export async function middleware(req: NextRequest) {
   }
 
   // 公開路徑直接放行
-  if (PUBLIC_PATHS.includes(pathname) || pathname.startsWith('/api/auth/') || pathname === '/api/setup') {
+  if (PUBLIC_PATHS.includes(pathname) || pathname === '/api/auth' || pathname.startsWith('/api/auth/') || pathname === '/api/setup') {
     return NextResponse.next()
   }
 
