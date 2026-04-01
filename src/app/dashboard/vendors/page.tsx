@@ -13,6 +13,7 @@ export default function VendorsPage() {
   const [form, setForm] = useState({ name: '', contact: '', account: '', password: '' })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false)
 
   async function fetchVendors() {
     const res = await fetch('/api/vendors')
@@ -21,7 +22,15 @@ export default function VendorsPage() {
     setLoading(false)
   }
 
-  useEffect(() => { fetchVendors() }, [])
+  useEffect(() => {
+    fetchVendors()
+    fetch('/api/auth').then(async res => {
+      if (res.ok) {
+        const data = await res.json()
+        setIsSuperAdmin(data.user?.role === 'superadmin')
+      }
+    })
+  }, [])
 
   function openAdd() {
     setEditing(null)
@@ -71,6 +80,7 @@ export default function VendorsPage() {
     <div className="p-4 max-w-3xl mx-auto space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold text-white">廠商管理</h2>
+        {isSuperAdmin && (
         <button
           onClick={openAdd}
           className="px-4 py-2 rounded-xl text-sm font-medium text-white"
@@ -78,6 +88,7 @@ export default function VendorsPage() {
         >
           + 新增廠商
         </button>
+        )}
       </div>
 
       <input
@@ -109,6 +120,7 @@ export default function VendorsPage() {
                   {v.contact && <span>聯絡：{v.contact}</span>}
                 </div>
               </div>
+              {isSuperAdmin && (
               <div className="flex gap-2">
                 <button
                   onClick={() => openEdit(v)}
@@ -125,6 +137,7 @@ export default function VendorsPage() {
                   刪除
                 </button>
               </div>
+              )}
             </div>
           ))}
         </div>

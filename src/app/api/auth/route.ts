@@ -1,8 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { createServerClient } from '@/lib/supabase'
-import { signToken, clearAuthCookie, createAuthCookie } from '@/lib/auth'
+import { signToken, clearAuthCookie, createAuthCookie, getAuthUserFromRequest } from '@/lib/auth'
 import type { AuthUser } from '@/types'
+
+// GET /api/auth — 取得當前使用者
+export async function GET(req: NextRequest) {
+  const user = await getAuthUserFromRequest(req)
+  if (!user) {
+    return NextResponse.json({ error: '未授權' }, { status: 401 })
+  }
+  return NextResponse.json({ user })
+}
 
 // POST /api/auth — 登入
 export async function POST(req: NextRequest) {
@@ -11,16 +20,13 @@ export async function POST(req: NextRequest) {
     if (!account || !password) {
       return NextResponse.json({ error: '請輸入帳號和密碼' }, { status: 400 })
     }
-
     const db = createServerClient()
-
     // 先查 accounts 表（後台帳號）
     const { data: accountData } = await db
       .from('accounts')
       .select('*')
       .eq('account', account)
       .single()
-
     if (accountData) {
       const valid = await bcrypt.compare(password, accountData.password_hash)
       if (!valid) {
@@ -38,14 +44,12 @@ export async function POST(req: NextRequest) {
       res.cookies.set(createAuthCookie(token))
       return res
     }
-
     // 再查 vendors 表（廠商）
     const { data: vendorData } = await db
       .from('vendors')
       .select('*')
       .eq('account', account)
       .single()
-
     if (vendorData) {
       const valid = await bcrypt.compare(password, vendorData.password_hash)
       if (!valid) {
@@ -63,7 +67,6 @@ export async function POST(req: NextRequest) {
       res.cookies.set(createAuthCookie(token))
       return res
     }
-
     return NextResponse.json({ error: '帳號或密碼錯誤' }, { status: 401 })
   } catch (err) {
     console.error('Login error:', err)
