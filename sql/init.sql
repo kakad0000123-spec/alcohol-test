@@ -48,7 +48,8 @@ CREATE TABLE IF NOT EXISTS report_config (
   id INTEGER PRIMARY KEY DEFAULT 1,
   enabled BOOLEAN DEFAULT TRUE,
   am_time TEXT DEFAULT '09:00',
-  pm_time TEXT DEFAULT '15:00'
+  pm_time TEXT DEFAULT '15:00',
+  night_time TEXT DEFAULT '20:00'
 );
 
 -- ============================================================
