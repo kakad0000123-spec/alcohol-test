@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase'
 import { getAuthUserFromRequest } from '@/lib/auth'
 
-// GET /api/history — 歷史紀錄，按日期分組
+// GET /api/history — 歷史紀錄，按日期分組，含廠商明細
 export async function GET(req: NextRequest) {
   const user = await getAuthUserFromRequest(req)
   if (!user || user.type !== 'account') {
@@ -10,7 +10,6 @@ export async function GET(req: NextRequest) {
   }
 
   const db = createServerClient()
-
   const { data: records, error } = await db
     .from('records')
     .select('date, session, vendor_id, vendor:vendors(name)')
@@ -19,22 +18,33 @@ export async function GET(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  // 按日期分組
-  const grouped: Record<string, { date: string; am: number; pm: number; vendors: Set<string> }> = {}
+  // 按日期分組，追蹤每家廠商 AM/PM 張數
+  const grouped: Record<string, {
+    date: string
+    amVendors: Map<string, number>
+    pmVendors: Map<string, number>
+  }> = {}
+
   for (const r of records || []) {
     if (!grouped[r.date]) {
-      grouped[r.date] = { date: r.date, am: 0, pm: 0, vendors: new Set() }
+      grouped[r.date] = { date: r.date, amVendors: new Map(), pmVendors: new Map() }
     }
-    if (r.session === 'AM') grouped[r.date].am++
-    else grouped[r.date].pm++
-    grouped[r.date].vendors.add(r.vendor_id)
+    const vendorName = (r.vendor as { name: string } | null)?.name || r.vendor_id
+    if (r.session === 'AM') {
+      grouped[r.date].amVendors.set(vendorName, (grouped[r.date].amVendors.get(vendorName) || 0) + 1)
+    } else {
+      grouped[r.date].pmVendors.set(vendorName, (grouped[r.date].pmVendors.get(vendorName) || 0) + 1)
+    }
   }
 
   const history = Object.values(grouped).map(g => ({
     date: g.date,
-    am: g.am,
-    pm: g.pm,
-    vendorCount: g.vendors.size,
+    amVendorCount: g.amVendors.size,
+    amPhotoCount: Array.from(g.amVendors.values()).reduce((a, b) => a + b, 0),
+    pmVendorCount: g.pmVendors.size,
+    pmPhotoCount: Array.from(g.pmVendors.values()).reduce((a, b) => a + b, 0),
+    amVendors: Array.from(g.amVendors.entries()).map(([name, count]) => ({ name, count })),
+    pmVendors: Array.from(g.pmVendors.entries()).map(([name, count]) => ({ name, count })),
   }))
 
   return NextResponse.json({ history })
