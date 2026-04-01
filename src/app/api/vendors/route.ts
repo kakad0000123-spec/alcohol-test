@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
   if (!user || user.type !== 'account') {
     return NextResponse.json({ error: '未授權' }, { status: 401 })
   }
-  if (user.role !== 'superadmin') {
+  if (user.role !== 'superadmin' && user.role !== 'user') {
     return NextResponse.json({ error: '權限不足' }, { status: 403 })
   }
   const { name, contact, account, password } = await req.json()
