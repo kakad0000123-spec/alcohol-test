@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
     if (!grouped[r.date]) {
       grouped[r.date] = { date: r.date, amVendors: new Map(), pmVendors: new Map() }
     }
-    const vendorName = (r.vendor as { name: string } | null)?.name || r.vendor_id
+    const vendorName = (r.vendor as unknown as { name: string } | null)?.name || r.vendor_id
     if (r.session === 'AM') {
       grouped[r.date].amVendors.set(vendorName, (grouped[r.date].amVendors.get(vendorName) || 0) + 1)
     } else {

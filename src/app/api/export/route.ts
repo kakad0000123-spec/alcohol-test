@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
   // 彙總：同日同廠商同時段合計張數
   const aggMap: Record<string, { 日期: string; 廠商名稱: string; 時段: string; 張數: number }> = {}
   for (const r of records || []) {
-    const vendorName = (r.vendor as { name: string } | null)?.name || r.vendor_id
+    const vendorName = (r.vendor as unknown as { name: string } | null)?.name || r.vendor_id
     const session = r.session === 'AM' ? '上午' : '下午'
     const key = `${r.date}_${vendorName}_${session}`
     if (!aggMap[key]) {
@@ -61,7 +61,7 @@ export async function GET(req: NextRequest) {
 
   const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }) as Buffer
 
-  return new NextResponse(buffer, {
+  return new NextResponse(new Uint8Array(buffer), {
     headers: {
       'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       'Content-Disposition': `attachment; filename="alcohol-test-${startDate}-${endDate}.xlsx"`,
