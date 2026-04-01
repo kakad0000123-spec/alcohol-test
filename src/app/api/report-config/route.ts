@@ -22,12 +22,12 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: '權限不足' }, { status: 403 })
   }
 
-  const { enabled, am_time, pm_time, night_time } = await req.json()
+  const { enabled, am_time, pm_time } = await req.json()
   const db = createServerClient()
 
   const { data, error } = await db
     .from('report_config')
-    .upsert({ id: 1, enabled, am_time, pm_time, night_time })
+    .upsert({ id: 1, enabled, am_time, pm_time })
     .select()
     .single()
 

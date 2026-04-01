@@ -9,7 +9,7 @@ export default function ReportClient({ user }: { user: AuthUser }) {
   const [saving, setSaving] = useState(false)
   const [newEmail, setNewEmail] = useState('')
   const [addingEmail, setAddingEmail] = useState(false)
-  const [form, setForm] = useState({ enabled: true, am_time: '09:00', pm_time: '15:00', night_time: '20:00' })
+  const [form, setForm] = useState({ enabled: true, am_time: '09:00', pm_time: '15:00' })
   const [saved, setSaved] = useState(false)
 
   const isSuperAdmin = user.role === 'superadmin'
@@ -19,7 +19,7 @@ export default function ReportClient({ user }: { user: AuthUser }) {
       fetch('/api/report-config').then(r => r.json()),
       fetch('/api/report-emails').then(r => r.json()),
     ]).then(([c, e]) => {
-      if (c.config) { setConfig(c.config); setForm({ enabled: c.config.enabled, am_time: c.config.am_time, pm_time: c.config.pm_time, night_time: c.config.night_time ?? '20:00' }) }
+      if (c.config) { setConfig(c.config); setForm({ enabled: c.config.enabled, am_time: c.config.am_time, pm_time: c.config.pm_time }) }
       if (e.emails) setEmails(e.emails)
     }).finally(() => setLoading(false))
   }, [])
@@ -89,7 +89,7 @@ export default function ReportClient({ user }: { user: AuthUser }) {
             />
           </button>
         </div>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-xs mb-1" style={{ color: 'var(--text-secondary)' }}>早上場寄送時間</label>
             <input
@@ -114,18 +114,6 @@ export default function ReportClient({ user }: { user: AuthUser }) {
               style={{ opacity: isSuperAdmin ? 1 : 0.5 }}
             />
           </div>
-          <div>
-            <label className="block text-xs mb-1" style={{ color: 'var(--text-secondary)' }}>晚上場寄送時間</label>
-            <input
-              type="time"
-              value={form.night_time}
-              onChange={e => isSuperAdmin && setForm(f => ({ ...f, night_time: e.target.value }))}
-              className="w-full px-3 py-2 text-sm rounded-lg"
-              readOnly={!isSuperAdmin}
-              disabled={!isSuperAdmin}
-              style={{ opacity: isSuperAdmin ? 1 : 0.5 }}
-            />
-          </div>
         </div>
         {isSuperAdmin && (
           <button
@@ -143,7 +131,6 @@ export default function ReportClient({ user }: { user: AuthUser }) {
         <div className="text-sm space-y-1" style={{ color: 'var(--text-secondary)' }}>
           <div>• 早上場：每天 {form.am_time} 寄送</div>
           <div>• 下午場：每天 {form.pm_time} 寄送</div>
-          <div>• 晚上場：每天 {form.night_time} 寄送</div>
           <div className="mt-2 text-xs">內容包含：早上/下午/晚上場次，已回報/未回報廠商清單、回報人數統計</div>
         </div>
       </div>
