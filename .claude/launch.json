@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "alcohol-test",
+      "runtimeExecutable": "/Users/po/.nvm/versions/node/v24.14.1/bin/node",
+      "runtimeArgs": ["/Users/po/.nvm/versions/node/v24.14.1/bin/npm", "run", "dev"],
+      "port": 3000,
+      "autoPort": true
+    }
+  ]
+}
