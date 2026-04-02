@@ -42,7 +42,7 @@ const AM_END_OPTS = timeOptions(8, 12)
 const PM_START_OPTS = timeOptions(12, 15)
 const PM_END_OPTS = timeOptions(14, 18)
 
-export default function LineClient({ user }: { user: AuthUser }) {
+export default function LineClient(_: { user: AuthUser }) {
   const [form, setForm] = useState<LineConfig>(defaultConfig)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
