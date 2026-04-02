@@ -13,12 +13,12 @@ export async function GET(req: NextRequest) {
   }
 
   // 找出 sent=false 且 first_upload_at <= NOW() - 5 分鐘 的記錄
-  const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString()
+  const threeMinAgo = new Date(Date.now() - 3 * 60 * 1000).toISOString()
   const { data: pending } = await db
     .from('line_notify_log')
     .select('id, vendor_id, date, session')
     .eq('sent', false)
-    .lte('first_upload_at', fiveMinAgo)
+    .lte('first_upload_at', threeMinAgo)
 
   if (!pending || pending.length === 0) {
     return NextResponse.json({ sent: 0 })
