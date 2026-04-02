@@ -109,9 +109,123 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: insertError.message }, { status: 500 })
     }
 
+    // 觸發 LINE 通知（fire-and-forget，不影響回應）
+    if (session !== 'Night') {
+      sendLineNotification(db, user.id, date, session).catch(e =>
+        console.error('LINE notification error:', e)
+      )
+    }
+
     return NextResponse.json({ record }, { status: 201 })
   } catch (err) {
     console.error('Upload error:', err)
     return NextResponse.json({ error: '上傳失敗' }, { status: 500 })
   }
+}
+
+async function sendLineNotification(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  db: any,
+  vendorId: string,
+  date: string,
+  session: 'AM' | 'PM'
+) {
+  // 讀取 line_config
+  const { data: config, error: configErr } = await db
+    .from('line_config')
+    .select('*')
+    .eq('id', 1)
+    .single()
+
+  if (configErr || !config) return
+
+  const enabled = session === 'AM' ? config.am_enabled : config.pm_enabled
+  if (!enabled) return
+
+  const token = session === 'AM' ? config.am_token : config.pm_token
+  const groupId = session === 'AM' ? config.am_group_id : config.pm_group_id
+  if (!token || !groupId) return
+
+  // 判斷目前台灣時間是否在通知區間內
+  const now = new Date()
+  const twHour = (now.getUTCHours() + 8) % 24
+  const twMin = now.getUTCMinutes()
+  const twTimeStr = `${String(twHour).padStart(2, '0')}:${String(twMin).padStart(2, '0')}`
+
+  const startTime = session === 'AM' ? config.am_start : config.pm_start
+  const endTime = session === 'AM' ? config.am_end : config.pm_end
+
+  if (twTimeStr < startTime || twTimeStr > endTime) return
+
+  // 確認是否已推播過
+  const { data: existing } = await db
+    .from('line_notify_log')
+    .select('id')
+    .eq('vendor_id', vendorId)
+    .eq('date', date)
+    .eq('session', session)
+    .maybeSingle()
+
+  if (existing) return
+
+  // 取得廠商名稱
+  const { data: vendor } = await db
+    .from('vendors')
+    .select('name')
+    .eq('id', vendorId)
+    .single()
+
+  if (!vendor) return
+
+  // 計算今日該場次該廠商照片數
+  const { count: photoCount } = await db
+    .from('records')
+    .select('id', { count: 'exact', head: true })
+    .eq('vendor_id', vendorId)
+    .eq('date', date)
+    .eq('session', session)
+
+  // 計算今日已回報廠商數（有至少一筆記錄）
+  const { data: reportedVendors } = await db
+    .from('records')
+    .select('vendor_id')
+    .eq('date', date)
+    .eq('session', session)
+
+  const reportedCount = new Set((reportedVendors ?? []).map((r: { vendor_id: string }) => r.vendor_id)).size
+
+  // 計算總廠商數
+  const { count: totalVendors } = await db
+    .from('vendors')
+    .select('id', { count: 'exact', head: true })
+
+  const sessionLabel = session === 'AM' ? '上午' : '下午'
+  const timeLabel = `${String(twHour).padStart(2, '0')}:${String(twMin).padStart(2, '0')}`
+
+  const message = `🔬 ${vendor.name} ${sessionLabel}酒測完成\n報到人數：${photoCount ?? 0} 人\n時間：${timeLabel}\n今日進度：${reportedCount}/${totalVendors ?? 0} 間已回報`
+
+  // 呼叫 LINE Messaging API
+  const lineRes = await fetch('https://api.line.me/v2/bot/message/push', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      to: groupId,
+      messages: [{ type: 'text', text: message }],
+    }),
+  })
+
+  if (!lineRes.ok) {
+    console.error('LINE API error:', await lineRes.text())
+    return
+  }
+
+  // 寫入 line_notify_log
+  await db.from('line_notify_log').insert({
+    vendor_id: vendorId,
+    date,
+    session,
+  })
 }

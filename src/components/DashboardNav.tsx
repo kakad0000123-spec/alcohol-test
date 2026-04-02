@@ -14,6 +14,7 @@ const tabs = [
   { key: 'report', label: '日報', icon: '📧', adminOnly: true },
   { key: 'history', label: '紀錄', icon: '📋' },
   { key: 'backup', label: '備份', icon: '💾', adminOnly: true },
+  { key: 'line', label: 'LINE', icon: '💬', adminOnly: true },
 ]
 
 export default function DashboardNav({ user }: Props) {
