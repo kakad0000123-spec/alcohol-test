@@ -11,7 +11,7 @@ const tabs = [
   { key: 'dashboard', label: '看板', icon: '📊' },
   { key: 'vendors', label: '廠商', icon: '🏭' },
   { key: 'users', label: '使用者', icon: '👤', adminOnly: true },
-  { key: 'report', label: '日報', icon: '📧' },
+  { key: 'report', label: '日報', icon: '📧', adminOnly: true },
   { key: 'history', label: '紀錄', icon: '📋' },
   { key: 'backup', label: '備份', icon: '💾', adminOnly: true },
 ]
