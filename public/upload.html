@@ -348,7 +348,7 @@ const CONFIG = {
 };
 const MAX_EDGE = 1600, QUALITY = 0.8;
 
-const state = { branch:null, vendor:null, gridX:null, gridY:null, shape:null, blobs:{done:null, far:null, near:null} };
+const state = { branch:null, vendor:null, gridX:null, gridY:null, shape:null, blobs:{done:null, far:null, near:null}, names:null, uploadedKey:{done:null, far:null, near:null} };
 const $  = s => document.querySelector(s);
 const $$ = s => document.querySelectorAll(s);
 
@@ -429,12 +429,12 @@ $$('input[type=file]').forEach(inp=>{
   inp.addEventListener('change', async e=>{
     const slot=inp.dataset.slot, file=e.target.files[0]; if(!file) return;
     const pv=$('[data-pv="'+slot+'"]'); pv.querySelector('.ok').textContent='壓縮中…'; pv.classList.add('show');
-    try{ const out=await compress(file); state.blobs[slot]=out; pv.querySelector('img').src=URL.createObjectURL(out.blob); pv.querySelector('.ok').textContent='✓ 已就緒（'+fmtMB(out.blob.size)+'）'; clearErr(slot); }
+    try{ const out=await compress(file); state.blobs[slot]=out; state.uploadedKey[slot]=null; state.names=null; pv.querySelector('img').src=URL.createObjectURL(out.blob); pv.querySelector('.ok').textContent='✓ 已就緒（'+fmtMB(out.blob.size)+'）'; clearErr(slot); }
     catch(err){ pv.classList.remove('show'); state.blobs[slot]=null; alert('照片讀取失敗，請改用相機或相簿重新選擇。'); }
   });
 });
 $$('.preview .re').forEach(btn=>btn.addEventListener('click',()=>{
-  const slot=btn.closest('.preview').dataset.pv; state.blobs[slot]=null;
+  const slot=btn.closest('.preview').dataset.pv; state.blobs[slot]=null; state.uploadedKey[slot]=null; state.names=null;
   $('.preview[data-pv="'+slot+'"]').classList.remove('show'); $('input[type=file][data-slot="'+slot+'"]').value='';
 }));
 async function compress(file){
@@ -494,14 +494,21 @@ function validate(){
 }
 
 /* Storage 上傳 / 寫表 */
+function fetchTimeout(url, opts, ms){
+  const ctrl=new AbortController(); const t=setTimeout(()=>ctrl.abort(), ms);
+  return fetch(url, Object.assign({}, opts, {signal:ctrl.signal}))
+    .catch(e=>{ if(e&&e.name==='AbortError') throw new Error('網路逾時，請確認訊號後再送一次'); throw new Error('網路連線失敗，請確認訊號後再送一次'); })
+    .finally(()=>clearTimeout(t));
+}
 async function uploadPhoto(key, blob, mime){
   const url=CONFIG.SUPABASE_URL+'/storage/v1/object/'+CONFIG.BUCKET+'/'+encodeURI(key);
-  const res=await fetch(url,{ method:'POST', headers:{ apikey:CONFIG.SUPABASE_ANON, Authorization:'Bearer '+CONFIG.SUPABASE_ANON, 'Content-Type':mime, 'x-upsert':'false' }, body:blob });
+  const res=await fetchTimeout(url,{ method:'POST', headers:{ apikey:CONFIG.SUPABASE_ANON, Authorization:'Bearer '+CONFIG.SUPABASE_ANON, 'Content-Type':mime, 'x-upsert':'false' }, body:blob }, 60000);
+  if(res.status===409) return key;            // 已存在＝先前已傳成功，視為成功（避免重傳孤兒）
   if(!res.ok) throw new Error('照片上傳失敗 ('+res.status+')'); return key;
 }
 async function insertRow(row){
   const url=CONFIG.SUPABASE_URL+'/rest/v1/'+CONFIG.TABLE;
-  const res=await fetch(url,{ method:'POST', headers:{ apikey:CONFIG.SUPABASE_ANON, Authorization:'Bearer '+CONFIG.SUPABASE_ANON, 'Content-Type':'application/json', Prefer:'return=minimal' }, body:JSON.stringify(row) });
+  const res=await fetchTimeout(url,{ method:'POST', headers:{ apikey:CONFIG.SUPABASE_ANON, Authorization:'Bearer '+CONFIG.SUPABASE_ANON, 'Content-Type':'application/json', Prefer:'return=minimal' }, body:JSON.stringify(row) }, 30000);
   if(!res.ok) throw new Error('資料寫入失敗 ('+res.status+')');
 }
 
@@ -510,28 +517,36 @@ $("#submitBtn").addEventListener('click', async ()=>{
   if(!validate()) return;
   const p=perimData();
   const ov=$("#overlay"), ovT=$("#ovTitle"); ov.classList.add('show'); $("#submitBtn").disabled=true;
-  const names=buildNames(), date=$("#workDate").value;
+  if(!state.names) state.names=buildNames();
+  const names=state.names, date=$("#workDate").value;
   const row={ work_date:date, contractor:state.vendor, knows_hole:state.branch==='yes',
     area:$("#area").value, grid_x:state.gridX, grid_y:state.gridY,
     shape:state.shape, dia_mm: state.shape==='圓'?parseFloat($("#dia").value):null,
     width_mm: state.shape==='矩'?parseFloat($("#rw").value):null, height_mm: state.shape==='矩'?parseFloat($("#rh").value):null,
     perimeter_mm:p.mm, size_label:p.label, size_note:$("#sizeNote").value.trim()||null, status:'待寄' };
+  // 已成功上傳的照片不重傳（重送時跳過，避免孤兒檔）
+  async function up(slot, key, label){
+    if(state.uploadedKey[slot]) return state.uploadedKey[slot];
+    ovT.textContent=label;
+    await uploadPhoto(key, state.blobs[slot].blob, state.blobs[slot].mime);
+    state.uploadedKey[slot]=key; return key;
+  }
   try{
     if(state.branch==='yes'){
-      ovT.textContent='上傳照片 1/1…';
-      await uploadPhoto(names.done.key, state.blobs.done.blob, state.blobs.done.mime);
-      row.serial=serial3(); row.hole_short=fullHoleCode(); row.photo_done_path=names.done.key; row.photo_done_name=names.done.work;
+      const k=await up('done', names.done.key, '上傳照片 1/1…');
+      row.serial=serial3(); row.hole_short=fullHoleCode(); row.photo_done_path=k; row.photo_done_name=names.done.work;
     } else {
-      ovT.textContent='上傳照片 1/2…'; await uploadPhoto(names.far.key, state.blobs.far.blob, state.blobs.far.mime);
-      ovT.textContent='上傳照片 2/2…'; await uploadPhoto(names.near.key, state.blobs.near.blob, state.blobs.near.mime);
-      row.location_note=$("#locNote").value.trim(); row.photo_far_path=names.far.key; row.photo_far_name=names.far.work; row.photo_near_path=names.near.key; row.photo_near_name=names.near.work;
+      const kf=await up('far', names.far.key, '上傳照片 1/2…');
+      const kn=await up('near', names.near.key, '上傳照片 2/2…');
+      row.location_note=$("#locNote").value.trim(); row.photo_far_path=kf; row.photo_far_name=names.far.work; row.photo_near_path=kn; row.photo_near_name=names.near.work;
     }
     ovT.textContent='儲存資料中…'; await insertRow(row);
+    state.names=null; state.uploadedKey={done:null, far:null, near:null};   // 成功後清快取
     const now=new Date(), hhmm=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
     const summary = state.branch==='yes' ? fullHoleCode() : ($("#area").value+' '+state.gridX+state.gridY);
     pushToday({ ts:Date.now(), d:todayStr(), t:hhmm, vendor:state.vendor, summary, label:(state.shape==='圓'?'圓 ':'矩 ')+p.label, perim:p.mm });
     ov.classList.remove('show'); showReceipt(date, names, p);
-  }catch(err){ ov.classList.remove('show'); $("#submitBtn").disabled=false; alert((err&&err.message?err.message:'上傳發生問題')+'\n請確認網路後再送出一次（重傳即可）。'); }
+  }catch(err){ ov.classList.remove('show'); $("#submitBtn").disabled=false; alert((err&&err.message?err.message:'上傳發生問題')+'\n網路恢復後直接再按一次「送出」即可，已上傳的照片不會重傳。'); }
 });
 
 /* 回執 */
@@ -562,7 +577,7 @@ $("#todayHead").addEventListener('click',()=>$("#todayPanel").classList.toggle('
 
 /* 再填下一筆（保留日期、廠商、區域；其餘清空） */
 $("#againBtn").addEventListener('click', ()=>{
-  resetBranchA(); resetBranchB(); state.branch=null; state.shape=null;
+  resetBranchA(); resetBranchB(); state.branch=null; state.shape=null; state.names=null; state.uploadedKey={done:null, far:null, near:null};
   state.gridX=null; state.gridY=null; $$('#gridX .chip,#gridY .chip').forEach(c=>c.classList.remove('sel'));
   $$('#knows .opt').forEach(x=>x.classList.remove('sel')); $$('#knows input').forEach(i=>i.checked=false);
   $$('#shape .opt').forEach(x=>x.classList.remove('sel')); $$('#shape input').forEach(i=>i.checked=false);
