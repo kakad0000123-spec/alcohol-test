@@ -515,7 +515,7 @@ $("#submitBtn").addEventListener('click', async ()=>{
     area:$("#area").value, grid_x:state.gridX, grid_y:state.gridY,
     shape:state.shape, dia_mm: state.shape==='圓'?parseFloat($("#dia").value):null,
     width_mm: state.shape==='矩'?parseFloat($("#rw").value):null, height_mm: state.shape==='矩'?parseFloat($("#rh").value):null,
-    perimeter_mm:p.mm, size_label:p.label, size_note:$("#sizeNote").value.trim()||null, status:'待核' };
+    perimeter_mm:p.mm, size_label:p.label, size_note:$("#sizeNote").value.trim()||null, status:'待寄' };
   try{
     if(state.branch==='yes'){
       ovT.textContent='上傳照片 1/1…';
