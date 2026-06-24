@@ -5,7 +5,7 @@ import { getCurrentWeekRange } from '@/lib/utils'
 
 export const dynamic = 'force-dynamic'
 
-const AREAS = ['3200區EL03500', '2100區EL03800', '1100區EL04500', '2100區EL04600', '1100區EL08800', '1100區EL14300', '1100區EL18800']
+const AREAS = ['3200區1.5F EL03500', '2100區1.5F EL03800', '1100區2F EL04500', '2100區1.5F EL04600', '1100區3F EL08800', '2100區2F EL08800', '1100區4F EL14300', '1100區5F EL18800']
 const CONTRACTORS = ['基誠', '偉翔']
 
 type Row = {

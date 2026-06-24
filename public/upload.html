@@ -201,10 +201,17 @@
       <p class="q-desc">依圖面或分區放大圖選擇。</p>
       <select id="area">
         <option value="">請選擇…</option>
-        <option>3200區EL03500</option><option>2100區EL03800</option><option>1100區EL04500</option>
-        <option>2100區EL04600</option><option>1100區EL08800</option><option>1100區EL14300</option><option>1100區EL18800</option>
+        <option>3200區1.5F EL03500</option><option>2100區1.5F EL03800</option><option>1100區2F EL04500</option>
+        <option>2100區1.5F EL04600</option><option>1100區3F EL08800</option><option>2100區2F EL08800</option>
+        <option>1100區4F EL14300</option><option>1100區5F EL18800</option>
       </select>
       <div class="field-err" data-for="area">請選擇樓層／區域</div>
+    </div>
+
+    <!-- X/Y 方向提醒 -->
+    <div class="q" style="background:#fff7e6;border-color:#e0b24a;">
+      <p class="q-title" style="font-size:15px;">📌 X／Y 向格線方向</p>
+      <p class="q-desc">請一律以<b>分區圖上的「地圖北」與「地圖東」</b>為基準判讀，<b>不要</b>用現場站立的方向。</p>
     </div>
 
     <!-- 04 X -->
@@ -383,7 +390,7 @@ $$('#knows .opt').forEach(o=>o.addEventListener('click',()=>{
 /* 末三碼 → 即時組完整孔號 */
 $("#serial").addEventListener('input', ()=>{ clearErr('serial'); updateCode(); });
 function serial3(){ let v=$("#serial").value.trim(); if(!v) return null; return /^\d+$/.test(v) ? v.padStart(3,'0') : v; }
-function holePrefix(area){ const m=area.match(/^(\d+)區EL0*(\d+)$/); return m ? m[1]+'-'+m[2] : area; }
+function holePrefix(area){ const m=area.match(/^(\d+)區.*EL0*(\d+)$/); return m ? m[1]+'-'+m[2] : area; }
 function fullHoleCode(){
   const area=$("#area").value, x=state.gridX, y=state.gridY, s=serial3();
   if(area && x && y && s) return holePrefix(area)+'-'+x+y+'-'+s;
@@ -457,7 +464,7 @@ function buildNames(){
     const base=fullHoleCode();
     return { done:{ work:base+'_完工.jpg', key:yyyymmdd+'/'+base+'_done__'+token()+'.jpg' } };
   } else {
-    const areaCode=$("#area").value.replace('區',''), grid=state.gridX+state.gridY;
+    const areaCode=$("#area").value.replace(/區\s*[\d.]+F\s*/,'').replace('區',''), grid=state.gridX+state.gridY;
     const base='TMP-'+yyyymmdd+'-'+CONFIG.PROJECT+'-'+areaCode+'-'+grid;
     const mk=(zh,en)=>({ work:base+'_'+zh+'.jpg', key:yyyymmdd+'/'+base+'_'+en+'__'+token()+'.jpg' });
     return { far:mk('遠','far'), near:mk('近','near') };
