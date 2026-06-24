@@ -1,64 +1,29 @@
-import { SignJWT, jwtVerify } from 'jose'
 import { cookies } from 'next/headers'
-import { NextRequest } from 'next/server'
-import type { AuthUser } from '@/types'
+import type { NextRequest } from 'next/server'
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'fallback-secret-change-in-production-32chars'
-)
-const COOKIE_NAME = 'auth_token'
-const COOKIE_MAX_AGE = 60 * 60 * 24 * 7 // 7 days
+// 簡易單一密碼閘：登入成功後種一個 httpOnly cookie，值＝DASHBOARD_TOKEN。
+// 後台在公網 Vercel 上，這層只是擋住路人；非多帳號/權限系統。
+// 日後要做多帳號再換成酒測那套 bcrypt + jose。
 
-export async function signToken(user: AuthUser): Promise<string> {
-  return new SignJWT({ ...user })
-    .setProtectedHeader({ alg: 'HS256' })
-    .setIssuedAt()
-    .setExpirationTime('7d')
-    .sign(JWT_SECRET)
+export const AUTH_COOKIE = 'bp_auth'
+
+export function checkPassword(input: string): boolean {
+  const pw = process.env.DASHBOARD_PASSWORD
+  return !!pw && input === pw
 }
 
-export async function verifyToken(token: string): Promise<AuthUser | null> {
-  try {
-    const { payload } = await jwtVerify(token, JWT_SECRET)
-    return payload as unknown as AuthUser
-  } catch {
-    return null
-  }
+export function authToken(): string {
+  return process.env.DASHBOARD_TOKEN || ''
 }
 
-export async function getAuthUser(): Promise<AuthUser | null> {
-  const cookieStore = await cookies()
-  const token = cookieStore.get(COOKIE_NAME)?.value
-  if (!token) return null
-  return verifyToken(token)
+// 給 middleware 用（讀 NextRequest 的 cookie）
+export function isAuthedFromRequest(req: NextRequest): boolean {
+  const token = authToken()
+  return !!token && req.cookies.get(AUTH_COOKIE)?.value === token
 }
 
-export async function getAuthUserFromRequest(req: NextRequest): Promise<AuthUser | null> {
-  const token = req.cookies.get(COOKIE_NAME)?.value
-  if (!token) return null
-  return verifyToken(token)
-}
-
-export function createAuthCookie(token: string) {
-  return {
-    name: COOKIE_NAME,
-    value: token,
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax' as const,
-    maxAge: COOKIE_MAX_AGE,
-    path: '/',
-  }
-}
-
-export function clearAuthCookie() {
-  return {
-    name: COOKIE_NAME,
-    value: '',
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax' as const,
-    maxAge: 0,
-    path: '/',
-  }
+// 給 server component 用（讀 next/headers cookies）
+export function isAuthed(): boolean {
+  const token = authToken()
+  return !!token && cookies().get(AUTH_COOKIE)?.value === token
 }

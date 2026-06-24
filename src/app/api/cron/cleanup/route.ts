@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@/lib/supabase'
+import { createServerClient, TABLE, BUCKET } from '@/lib/supabase'
 
-// POST /api/cron/cleanup — 刪除 5 天前的照片
+// POST /api/cron/cleanup — 兩週緩衝清除（HANDOFF §8 step 9 / §9）
+// 找出「已寄出且 sent_at 超過 14 天」的記錄，刪 Storage 私照，並把 3 個 path 欄位設為 NULL（保留資料列）。
+// 由 Vercel Cron 觸發，middleware 已用 CRON_SECRET 擋。
 export async function POST(req: NextRequest) {
   const authHeader = req.headers.get('authorization')
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -10,34 +12,32 @@ export async function POST(req: NextRequest) {
 
   const db = createServerClient()
 
-  // 找出 5 天前且還有 file_path 的記錄
-  const cutoffDate = new Date()
-  cutoffDate.setDate(cutoffDate.getDate() - 5)
-  const cutoff = cutoffDate.toISOString().split('T')[0]
+  const cutoff = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString()
 
-  const { data: oldRecords } = await db
-    .from('records')
-    .select('id, file_path')
-    .lt('date', cutoff)
-    .neq('file_path', '')
+  const { data: oldRows, error } = await db
+    .from(TABLE)
+    .select('id, photo_done_path, photo_far_path, photo_near_path, sent_at')
+    .not('sent_at', 'is', null)
+    .lt('sent_at', cutoff)
 
-  if (!oldRecords || oldRecords.length === 0) {
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (!oldRows || oldRows.length === 0) {
     return NextResponse.json({ message: '沒有需要清理的照片', deleted: 0 })
   }
 
-  const paths = oldRecords.map(r => r.file_path).filter(Boolean)
+  const paths = oldRows.flatMap(r =>
+    [r.photo_done_path, r.photo_far_path, r.photo_near_path].filter(Boolean) as string[]
+  )
 
-  // 刪除 Storage 中的照片
   if (paths.length > 0) {
-    const { error: storageError } = await db.storage.from('alcohol-photos').remove(paths)
-    if (storageError) {
-      console.error('Storage cleanup error:', storageError)
-    }
+    const { error: storageError } = await db.storage.from(BUCKET).remove(paths)
+    if (storageError) console.error('Storage cleanup error:', storageError)
   }
 
-  // 清空 file_path 欄位（保留記錄）
-  const ids = oldRecords.map(r => r.id)
-  await db.from('records').update({ file_path: '' }).in('id', ids)
+  const ids = oldRows.map(r => r.id)
+  await db.from(TABLE)
+    .update({ photo_done_path: null, photo_far_path: null, photo_near_path: null })
+    .in('id', ids)
 
-  return NextResponse.json({ success: true, deleted: paths.length })
+  return NextResponse.json({ success: true, rows: ids.length, deletedFiles: paths.length })
 }

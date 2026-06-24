@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>802BP 管線穿隔柵補強照片上傳表</title>
+<style>
+  :root{
+    --navy:#13294B; --navy-2:#1C3A66; --orange:#F25C05; --orange-soft:#FFF1E8;
+    --ink:#1A2230; --muted:#5B6878; --line:#D4DAE2; --line-2:#E7EBF1;
+    --bg:#EEF1F5; --card:#FFFFFF; --ok:#1E7E47; --ok-soft:#E8F4EC;
+    --err:#C0362C; --err-soft:#FBECEA; --warn-soft:#FFF8E1; --warn-line:#E7C200;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;
+    background:var(--bg); color:var(--ink); font-size:16px; line-height:1.55; -webkit-text-size-adjust:100%;}
+  .wrap{max-width:560px;margin:0 auto;padding:0 0 64px;}
+
+  .head{background:var(--navy);color:#fff;padding:18px 18px 0;}
+  .head .tag{display:inline-block;background:var(--orange);color:#fff;font-weight:700;font-size:12px;letter-spacing:.08em;padding:3px 8px;border-radius:4px;}
+  .head h1{font-size:19px;font-weight:700;margin:10px 0 4px;letter-spacing:.01em;}
+  .head p{font-size:13px;color:#B9C6DB;margin:0 0 16px;}
+  .stripe{height:8px;background:repeating-linear-gradient(135deg,var(--orange) 0 14px,var(--navy) 14px 28px);}
+
+  .body{padding:16px 16px 0;}
+
+  details.help{background:var(--card);border:1px solid var(--line);border-radius:10px;margin-bottom:14px;overflow:hidden;}
+  details.help summary{list-style:none;cursor:pointer;padding:13px 14px;font-weight:600;font-size:14px;color:var(--navy);display:flex;align-items:center;justify-content:space-between;}
+  details.help summary::-webkit-details-marker{display:none;}
+  details.help summary .chev{color:var(--muted);font-size:13px;transition:transform .2s;}
+  details.help[open] summary .chev{transform:rotate(180deg);}
+  details.help .inner{padding:0 14px 14px;font-size:13.5px;color:var(--muted);}
+  details.help ol{margin:6px 0 0;padding-left:1.2em;}
+  details.help li{margin:5px 0;}
+
+  .today{background:#fff;border:1px solid var(--line);border-radius:10px;margin-bottom:14px;overflow:hidden;}
+  .today-head{padding:12px 14px;font-size:14px;font-weight:600;color:var(--navy);cursor:pointer;display:flex;align-items:center;gap:6px;}
+  .today-head b{color:var(--orange);}
+  .today-head .chev{margin-left:auto;color:var(--muted);font-size:13px;transition:transform .2s;}
+  .today.open .today-head .chev{transform:rotate(180deg);}
+  .today-list{display:none;border-top:1px solid var(--line-2);}
+  .today.open .today-list{display:block;}
+  .today-item{padding:10px 14px;border-bottom:1px solid var(--line-2);font-size:13px;}
+  .today-item:last-child{border-bottom:none;}
+  .today-item .ti-top{font-weight:600;color:var(--ink);}
+  .today-item .ti-sub{color:var(--muted);margin-top:2px;}
+
+  .q{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:14px;}
+  .q-num{display:inline-block;font-size:11px;font-weight:700;color:var(--orange);letter-spacing:.1em;margin-bottom:2px;}
+  .q-title{font-size:15.5px;font-weight:700;margin:0 0 2px;}
+  .q-title .req{color:var(--err);margin-left:4px;font-weight:700;}
+  .q-desc{font-size:13px;color:var(--muted);margin:4px 0 11px;}
+  .q-desc.tight{margin-bottom:0;}
+
+  input[type=date],input[type=text],input[type=number],textarea,select{
+    width:100%;font-size:16px;font-family:inherit;color:var(--ink);border:1.5px solid var(--line);border-radius:9px;padding:12px;background:#fff;}
+  textarea{resize:vertical;min-height:60px;line-height:1.5;}
+  input:focus,textarea:focus,select:focus{outline:none;border-color:var(--navy);box-shadow:0 0 0 3px rgba(19,41,75,.12);}
+  select{appearance:none;-webkit-appearance:none;background-image:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%235B6878' stroke-width='2.5'><path d='M6 9l6 6 6-6'/></svg>");
+    background-repeat:no-repeat;background-position:right 12px center;padding-right:38px;}
+
+  .opts{display:flex;flex-direction:column;gap:9px;}
+  .opt{display:flex;align-items:center;gap:11px;border:1.5px solid var(--line);border-radius:10px;padding:13px 14px;cursor:pointer;background:#fff;font-size:15.5px;font-weight:600;transition:border-color .12s,background .12s;}
+  .opt .dot{width:20px;height:20px;border-radius:50%;border:2px solid var(--line);flex:0 0 auto;position:relative;}
+  .opt input{position:absolute;opacity:0;pointer-events:none;}
+  .opt.sel{border-color:var(--orange);background:var(--orange-soft);}
+  .opt.sel .dot{border-color:var(--orange);}
+  .opt.sel .dot::after{content:"";position:absolute;inset:3px;border-radius:50%;background:var(--orange);}
+
+  .chips{display:flex;flex-wrap:wrap;gap:8px;}
+  .chip{min-width:46px;text-align:center;border:1.5px solid var(--line);border-radius:9px;padding:11px 0;font-size:16px;font-weight:700;cursor:pointer;background:#fff;flex:1 0 auto;}
+  .chip.sel{background:var(--navy);color:#fff;border-color:var(--navy);}
+
+  .codebox{margin-top:11px;background:var(--orange-soft);border:1.5px solid var(--orange);border-radius:9px;padding:12px 14px;font-size:14px;font-weight:700;color:var(--navy);}
+  .codebox.empty{background:#F0F3F7;border-color:var(--line);color:var(--muted);font-weight:500;}
+  .codebox .big{font-size:17px;letter-spacing:.02em;}
+
+  .dimrow{display:flex;gap:10px;margin-top:11px;}
+  .dimcell{flex:1;}
+  .dimcell .dl{display:block;font-size:12.5px;color:var(--muted);font-weight:600;margin-bottom:5px;}
+  .dimcell .wrap-in{position:relative;}
+  .dimcell input{padding-right:42px;}
+  .dimcell .unit{position:absolute;right:13px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px;font-weight:600;}
+  .perim{margin-top:12px;background:var(--navy);color:#fff;border-radius:9px;padding:12px 14px;font-size:14px;font-weight:600;line-height:1.5;}
+  .perim.empty{background:#F0F3F7;color:var(--muted);font-weight:500;}
+  .perim .m{color:#FFCBA6;}
+
+  .file-zone{border:1.5px dashed var(--line);border-radius:10px;padding:14px;text-align:center;background:#FAFBFD;cursor:pointer;}
+  .file-zone .ic{font-size:26px;line-height:1;}
+  .file-zone .t{font-size:14.5px;font-weight:600;color:var(--navy);margin-top:6px;}
+  .file-zone .s{font-size:12px;color:var(--muted);margin-top:2px;}
+  .file-zone input{display:none;}
+  .preview{margin-top:10px;display:none;}
+  .preview.show{display:block;}
+  .preview img{width:100%;max-height:230px;object-fit:cover;border-radius:9px;border:1px solid var(--line);}
+  .preview .meta{display:flex;align-items:center;justify-content:space-between;font-size:12.5px;margin-top:7px;gap:8px;}
+  .preview .meta .ok{color:var(--ok);font-weight:600;}
+  .preview .meta .re{color:var(--navy);font-weight:600;text-decoration:underline;cursor:pointer;}
+
+  .hidden{display:none !important;}
+
+  .submit{width:100%;background:var(--orange);color:#fff;border:none;border-radius:11px;padding:16px;font-size:17px;font-weight:700;font-family:inherit;cursor:pointer;margin-top:4px;letter-spacing:.02em;}
+  .submit:disabled{opacity:.55;cursor:default;}
+  .submit:active{filter:brightness(.95);}
+
+  .field-err{color:var(--err);font-size:12.5px;margin-top:6px;display:none;}
+  .field-err.show{display:block;}
+
+  .cfgbar{background:var(--warn-soft);border:1px solid var(--warn-line);border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:13px;color:#6b5800;display:none;}
+  .cfgbar.show{display:block;}
+  .cfgbar b{color:#4d3f00;}
+
+  .overlay{position:fixed;inset:0;background:rgba(19,41,75,.55);backdrop-filter:blur(2px);display:none;align-items:center;justify-content:center;padding:24px;z-index:50;}
+  .overlay.show{display:flex;}
+  .panel{background:#fff;border-radius:14px;padding:26px 22px;max-width:340px;width:100%;text-align:center;}
+  .spinner{width:38px;height:38px;border:4px solid var(--line-2);border-top-color:var(--orange);border-radius:50%;margin:0 auto 14px;animation:spin .8s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .panel .pt{font-weight:700;font-size:16px;}
+  .panel .ps{font-size:13px;color:var(--muted);margin-top:5px;}
+
+  .receipt{display:none;padding:16px;}
+  .receipt.show{display:block;}
+  .rc-card{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;}
+  .rc-top{background:var(--ok-soft);border-bottom:1px solid #CFE6D6;padding:20px;text-align:center;}
+  .rc-top .check{width:48px;height:48px;border-radius:50%;background:var(--ok);color:#fff;font-size:26px;line-height:48px;margin:0 auto 8px;}
+  .rc-top .rt{font-size:18px;font-weight:700;color:#155f36;}
+  .rc-top .rs{font-size:13px;color:#2c7a4d;margin-top:3px;}
+  .rc-rows{padding:6px 16px 14px;}
+  .rc-row{display:flex;gap:12px;padding:11px 0;border-bottom:1px solid var(--line-2);font-size:14px;}
+  .rc-row:last-child{border-bottom:none;}
+  .rc-row .k{flex:0 0 88px;color:var(--muted);}
+  .rc-row .v{flex:1;font-weight:600;word-break:break-all;}
+  .rc-files{background:#FAFBFD;border-top:1px solid var(--line-2);padding:13px 16px;}
+  .rc-files .lbl{font-size:12px;color:var(--muted);font-weight:600;margin-bottom:6px;}
+  .rc-files .fn{font-size:13px;font-weight:600;color:var(--navy);word-break:break-all;background:#fff;border:1px solid var(--line);border-radius:7px;padding:8px 10px;margin-bottom:6px;}
+  .rc-note{font-size:12.5px;color:var(--muted);padding:0 16px 16px;line-height:1.5;}
+  .rc-note .shot{color:var(--orange);font-weight:700;}
+  .rc-again{width:100%;background:var(--navy);color:#fff;border:none;border-radius:11px;padding:15px;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;margin-top:14px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="head">
+    <span class="tag">802BP</span>
+    <h1>管線穿隔柵補強照片上傳表</h1>
+    <p>開孔補強施工完成後照片上傳</p>
+  </header>
+  <div class="stripe"></div>
+
+  <div class="body" id="formArea">
+
+    <div class="cfgbar" id="cfgbar"><b>尚未設定 Supabase。</b>請開啟此檔案，於最上方 &lt;script&gt; 的 CONFIG 區填入專案網址與金鑰後再使用。</div>
+
+    <div class="today" id="todayPanel" style="display:none">
+      <div class="today-head" id="todayHead">今日已送出 <b id="todayCount">0</b> 筆<span class="chev">▾</span></div>
+      <div class="today-list" id="todayList"></div>
+    </div>
+
+    <details class="help">
+      <summary><span>填寫說明（點開）</span><span class="chev">▾</span></summary>
+      <div class="inner">
+        本表單供開孔補強施工完成後照片上傳。建議做完一孔、當場拍照填寫並送出，不要收工後一次補填。
+        <ol>
+          <li>先依圖面或分區放大圖選擇樓層／區域、X 向、Y 向格線。</li>
+          <li>知道孔號末三碼（現場標籤上的流水號，例如 001）→ 選「知道」並填三碼，系統會自動組出完整孔號。</li>
+          <li>不知道或不確定 → 選「不知道」，寫位置說明並上傳遠照與近照。</li>
+          <li>圖面 (1)、(2)、(3) 為開孔尺寸代號，不是孔號，請勿填寫為孔號。</li>
+          <li>開孔尺寸先選形狀再填數字，系統自動算周長。每個照片欄位只上傳 1 張。</li>
+        </ol>
+      </div>
+    </details>
+
+    <!-- 01 -->
+    <div class="q">
+      <span class="q-num">01</span>
+      <p class="q-title">施工日期<span class="req">*</span></p>
+      <p class="q-desc tight">請填寫實際施工日期。</p>
+      <div style="height:11px"></div>
+      <input type="date" id="workDate">
+      <div class="field-err" data-for="workDate">請選擇施工日期</div>
+    </div>
+
+    <!-- 02 -->
+    <div class="q">
+      <span class="q-num">02</span>
+      <p class="q-title">廠商名稱<span class="req">*</span></p>
+      <div class="opts" id="vendor">
+        <label class="opt"><span class="dot"></span><input type="radio" name="vendor" value="基誠">基誠</label>
+        <label class="opt"><span class="dot"></span><input type="radio" name="vendor" value="偉翔">偉翔</label>
+      </div>
+      <div class="field-err" data-for="vendor">請選擇廠商</div>
+    </div>
+
+    <!-- 03 樓層／區域（共同） -->
+    <div class="q">
+      <span class="q-num">03</span>
+      <p class="q-title">樓層／區域<span class="req">*</span></p>
+      <p class="q-desc">依圖面或分區放大圖選擇。</p>
+      <select id="area">
+        <option value="">請選擇…</option>
+        <option>3200區EL03500</option><option>2100區EL03800</option><option>1100區EL04500</option>
+        <option>2100區EL04600</option><option>1100區EL08800</option><option>1100區EL14300</option><option>1100區EL18800</option>
+      </select>
+      <div class="field-err" data-for="area">請選擇樓層／區域</div>
+    </div>
+
+    <!-- 04 X -->
+    <div class="q">
+      <span class="q-num">04</span>
+      <p class="q-title">X 向格線<span class="req">*</span></p>
+      <p class="q-desc">依圖面或分區放大圖選擇。</p>
+      <div class="chips" id="gridX"><span class="chip">1</span><span class="chip">2</span><span class="chip">3</span><span class="chip">4</span><span class="chip">5</span><span class="chip">6</span></div>
+      <div class="field-err" data-for="gridX">請選擇 X 向格線</div>
+    </div>
+
+    <!-- 05 Y -->
+    <div class="q">
+      <span class="q-num">05</span>
+      <p class="q-title">Y 向格線<span class="req">*</span></p>
+      <p class="q-desc">依圖面或分區放大圖選擇。</p>
+      <div class="chips" id="gridY"><span class="chip">A</span><span class="chip">B</span><span class="chip">C</span><span class="chip">D</span><span class="chip">E</span><span class="chip">F</span></div>
+      <div class="field-err" data-for="gridY">請選擇 Y 向格線</div>
+    </div>
+
+    <!-- 06 是否知道孔號末三碼（分支） -->
+    <div class="q">
+      <span class="q-num">06</span>
+      <p class="q-title">知道孔號末三碼嗎？<span class="req">*</span></p>
+      <p class="q-desc">末三碼＝孔號最後的流水號，例如 001。現場標籤上有就選「知道」，沒有或不確定就選「不知道」。</p>
+      <div class="opts" id="knows">
+        <label class="opt"><span class="dot"></span><input type="radio" name="knows" value="yes">知道（填末三碼）</label>
+        <label class="opt"><span class="dot"></span><input type="radio" name="knows" value="no">不知道／不確定（改拍遠近照）</label>
+      </div>
+      <div class="field-err" data-for="knows">請選擇</div>
+    </div>
+
+    <!-- Branch A：知道末三碼 -->
+    <div id="branchA" class="hidden">
+      <div class="q">
+        <span class="q-num">07</span>
+        <p class="q-title">孔號末三碼<span class="req">*</span></p>
+        <p class="q-desc">只填現場標籤上的最後三碼（流水號），例如 001。前面的區域與格線會用上面選的自動組合，不用重打。圖面 (1)(2)(3) 是尺寸代號，不是孔號。</p>
+        <input type="text" id="serial" inputmode="numeric" maxlength="4" placeholder="例如：001">
+        <div class="codebox empty" id="codebox">選好區域、X／Y 格線並填末三碼後，自動顯示完整孔號</div>
+        <div class="field-err" data-for="serial">請填寫孔號末三碼</div>
+      </div>
+      <div class="q">
+        <span class="q-num">08</span>
+        <p class="q-title">上傳施工完成照片<span class="req">*</span></p>
+        <p class="q-desc">該孔號施工完成照片 1 張，需清楚顯示開孔補強位置。</p>
+        <label class="file-zone" data-slot="done"><div class="ic">📷</div><div class="t">拍照或選擇照片</div><div class="s">限 1 張．上傳前自動壓縮</div><input type="file" accept="image/*" data-slot="done"></label>
+        <div class="preview" data-pv="done"><img alt="預覽"><div class="meta"><span class="ok"></span><span class="re">重新選擇</span></div></div>
+        <div class="field-err" data-for="done">請上傳施工完成照片</div>
+      </div>
+    </div>
+
+    <!-- Branch B：不知道 -->
+    <div id="branchB" class="hidden">
+      <div class="q">
+        <span class="q-num">07</span>
+        <p class="q-title">位置補充說明<span class="req">*</span></p>
+        <p class="q-desc">簡短描述實際位置，例如：靠近北側管架旁 / 靠近樓梯側。請勿只填「不知道」「現場」「如照片」。</p>
+        <textarea id="locNote" placeholder="例如：靠近北側管架旁"></textarea>
+        <div class="field-err" data-for="locNote">請簡短描述實際位置</div>
+      </div>
+      <div class="q">
+        <span class="q-num">08</span>
+        <p class="q-title">遠照<span class="req">*</span></p>
+        <p class="q-desc">可辨識大範圍位置的照片 1 張，需包含周邊環境或明顯參考點。</p>
+        <label class="file-zone" data-slot="far"><div class="ic">🏗️</div><div class="t">拍照或選擇遠照</div><div class="s">限 1 張．上傳前自動壓縮</div><input type="file" accept="image/*" data-slot="far"></label>
+        <div class="preview" data-pv="far"><img alt="預覽"><div class="meta"><span class="ok"></span><span class="re">重新選擇</span></div></div>
+        <div class="field-err" data-for="far">請上傳遠照</div>
+      </div>
+      <div class="q">
+        <span class="q-num">09</span>
+        <p class="q-title">近照<span class="req">*</span></p>
+        <p class="q-desc">開孔或補強位置近照 1 張，需清楚顯示施工完成狀態。</p>
+        <label class="file-zone" data-slot="near"><div class="ic">🔍</div><div class="t">拍照或選擇近照</div><div class="s">限 1 張．上傳前自動壓縮</div><input type="file" accept="image/*" data-slot="near"></label>
+        <div class="preview" data-pv="near"><img alt="預覽"><div class="meta"><span class="ok"></span><span class="re">重新選擇</span></div></div>
+        <div class="field-err" data-for="near">請上傳近照</div>
+      </div>
+    </div>
+
+    <!-- 共同：開孔尺寸 + 送出 -->
+    <div id="tail" class="hidden">
+      <div class="q">
+        <span class="q-num" id="sizeNum">10</span>
+        <p class="q-title">開孔尺寸<span class="req">*</span></p>
+        <p class="q-desc">先選形狀再填尺寸，單位 mm。系統會自動算周長（計價用）。</p>
+        <div class="opts" id="shape">
+          <label class="opt"><span class="dot"></span><input type="radio" name="shape" value="圓">圓孔</label>
+          <label class="opt"><span class="dot"></span><input type="radio" name="shape" value="矩">矩形孔</label>
+        </div>
+        <div id="dimCircle" class="hidden">
+          <div class="dimrow"><div class="dimcell"><span class="dl">直徑 D</span><div class="wrap-in"><input type="number" inputmode="numeric" id="dia" min="1" placeholder="例如 300"><span class="unit">mm</span></div></div></div>
+        </div>
+        <div id="dimRect" class="hidden">
+          <div class="dimrow">
+            <div class="dimcell"><span class="dl">寬 W</span><div class="wrap-in"><input type="number" inputmode="numeric" id="rw" min="1" placeholder="例如 300"><span class="unit">mm</span></div></div>
+            <div class="dimcell"><span class="dl">高 H</span><div class="wrap-in"><input type="number" inputmode="numeric" id="rh" min="1" placeholder="例如 400"><span class="unit">mm</span></div></div>
+          </div>
+        </div>
+        <div class="perim empty" id="perim">填入尺寸後自動計算周長</div>
+        <div class="field-err" data-for="shape">請選擇開孔形狀並填寫尺寸</div>
+        <div style="height:14px"></div>
+        <span class="dl" style="display:block;margin-bottom:6px;">備註（選填）</span>
+        <textarea id="sizeNote" placeholder="如有特殊情況再填，例如異形孔"></textarea>
+      </div>
+      <button class="submit" id="submitBtn">送出上傳</button>
+    </div>
+
+  </div><!-- /formArea -->
+
+  <div class="receipt" id="receipt">
+    <div class="rc-card">
+      <div class="rc-top"><div class="check">✓</div><div class="rt">上傳完成</div><div class="rs">資料與照片已送出</div></div>
+      <div class="rc-rows" id="rcRows"></div>
+      <div class="rc-files"><div class="lbl">已上傳檔案</div><div id="rcFiles"></div></div>
+      <div class="rc-note"><span class="shot">請截圖此畫面保存，作為上傳憑證。</span><br>正式孔號由後台整理，您不需自行填寫或修改檔名。</div>
+    </div>
+    <button class="rc-again" id="againBtn">再填下一筆</button>
+  </div>
+
+</div>
+
+<div class="overlay" id="overlay"><div class="panel"><div class="spinner"></div><div class="pt" id="ovTitle">處理中…</div><div class="ps" id="ovSub">請稍候，勿關閉頁面</div></div></div>
+
+<script>
+/* ============================================================
+   CONFIG ── 部署前請填這 5 項
+   ============================================================ */
+const CONFIG = {
+  SUPABASE_URL : "https://dcopfymitvlhncwkkhxi.supabase.co",
+  SUPABASE_ANON: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRjb3BmeW1pdHZsaG5jd2traHhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5ODQ3ODgsImV4cCI6MjA5MDU2MDc4OH0.SSRwatXO2_2fsXEkSURiF_5giZXU9C26OMgwqEPMEpM",
+  BUCKET       : "hole-photos",
+  TABLE        : "hole_uploads",
+  PROJECT      : "802BP"
+};
+const MAX_EDGE = 1600, QUALITY = 0.8;
+
+const state = { branch:null, vendor:null, gridX:null, gridY:null, shape:null, blobs:{done:null, far:null, near:null} };
+const $  = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
+
+(function init(){
+  const d = new Date();
+  $("#workDate").value = d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+  if (CONFIG.SUPABASE_URL.includes("YOUR-PROJECT") || CONFIG.SUPABASE_ANON.includes("YOUR-ANON")){ $("#cfgbar").classList.add("show"); $("#submitBtn").disabled = true; }
+  renderToday();
+})();
+
+/* 廠商 */
+$$('#vendor .opt').forEach(o=>o.addEventListener('click',()=>{
+  $$('#vendor .opt').forEach(x=>x.classList.remove('sel'));
+  o.classList.add('sel'); o.querySelector('input').checked=true; state.vendor=o.querySelector('input').value; clearErr('vendor');
+}));
+
+/* 區域 */
+$("#area").addEventListener('change', ()=>{ clearErr('area'); updateCode(); });
+
+/* X / Y */
+function chipGroup(sel,key){
+  $$(sel+' .chip').forEach(c=>c.addEventListener('click',()=>{
+    $$(sel+' .chip').forEach(x=>x.classList.remove('sel'));
+    c.classList.add('sel'); state[key]=c.textContent.trim(); clearErr(key==='gridX'?'gridX':'gridY'); updateCode();
+  }));
+}
+chipGroup('#gridX','gridX'); chipGroup('#gridY','gridY');
+
+/* 分支 */
+$$('#knows .opt').forEach(o=>o.addEventListener('click',()=>{
+  $$('#knows .opt').forEach(x=>x.classList.remove('sel'));
+  o.classList.add('sel'); o.querySelector('input').checked=true;
+  const v=o.querySelector('input').value; state.branch=v; clearErr('knows');
+  if(v==='yes'){ $("#branchA").classList.remove('hidden'); $("#branchB").classList.add('hidden'); resetBranchB(); $("#sizeNum").textContent='09'; updateCode(); }
+  else { $("#branchB").classList.remove('hidden'); $("#branchA").classList.add('hidden'); resetBranchA(); $("#sizeNum").textContent='10'; }
+  $("#tail").classList.remove('hidden');
+}));
+
+/* 末三碼 → 即時組完整孔號 */
+$("#serial").addEventListener('input', ()=>{ clearErr('serial'); updateCode(); });
+function serial3(){ let v=$("#serial").value.trim(); if(!v) return null; return /^\d+$/.test(v) ? v.padStart(3,'0') : v; }
+function holePrefix(area){ const m=area.match(/^(\d+)區EL0*(\d+)$/); return m ? m[1]+'-'+m[2] : area; }
+function fullHoleCode(){
+  const area=$("#area").value, x=state.gridX, y=state.gridY, s=serial3();
+  if(area && x && y && s) return holePrefix(area)+'-'+x+y+'-'+s;
+  return null;
+}
+function updateCode(){
+  if(state.branch!=='yes') return;
+  const el=$("#codebox"); if(!el) return;
+  const code=fullHoleCode();
+  if(code){ el.classList.remove('empty'); el.innerHTML='完整孔號：<span class="big">'+code+'</span>'; }
+  else { el.classList.add('empty'); el.textContent='選好區域、X／Y 格線並填末三碼後，自動顯示完整孔號'; }
+}
+
+/* 形狀 + 周長 */
+$$('#shape .opt').forEach(o=>o.addEventListener('click',()=>{
+  $$('#shape .opt').forEach(x=>x.classList.remove('sel'));
+  o.classList.add('sel'); o.querySelector('input').checked=true; state.shape=o.querySelector('input').value;
+  if(state.shape==='圓'){ $("#dimCircle").classList.remove('hidden'); $("#dimRect").classList.add('hidden'); $("#rw").value=''; $("#rh").value=''; }
+  else { $("#dimRect").classList.remove('hidden'); $("#dimCircle").classList.add('hidden'); $("#dia").value=''; }
+  clearErr('shape'); calcPerim();
+}));
+['dia','rw','rh'].forEach(id=>$("#"+id).addEventListener('input',()=>{ clearErr('shape'); calcPerim(); }));
+function perimData(){
+  if(state.shape==='圓'){ const d=parseFloat($("#dia").value); if(d>0){ const mm=Math.round(Math.PI*d*10)/10; return {mm, label:'Ø'+d, text:'周長 ≈ π × '+d+' = '+mm+' mm'}; } }
+  else if(state.shape==='矩'){ const w=parseFloat($("#rw").value), h=parseFloat($("#rh").value); if(w>0&&h>0){ const mm=Math.round(2*(w+h)*10)/10; return {mm, label:w+'×'+h, text:'周長 = 2 × ('+w+' + '+h+') = '+mm+' mm'}; } }
+  return null;
+}
+function calcPerim(){
+  const p=perimData(), el=$("#perim");
+  if(p){ el.classList.remove('empty'); el.innerHTML=p.text+'（<span class="m">≈ '+(p.mm/1000).toFixed(2)+' m</span>）'; }
+  else { el.classList.add('empty'); el.textContent='填入尺寸後自動計算周長'; }
+}
+
+/* 檔案：選擇即壓縮＋預覽 */
+$$('input[type=file]').forEach(inp=>{
+  inp.addEventListener('change', async e=>{
+    const slot=inp.dataset.slot, file=e.target.files[0]; if(!file) return;
+    const pv=$('[data-pv="'+slot+'"]'); pv.querySelector('.ok').textContent='壓縮中…'; pv.classList.add('show');
+    try{ const out=await compress(file); state.blobs[slot]=out; pv.querySelector('img').src=URL.createObjectURL(out.blob); pv.querySelector('.ok').textContent='✓ 已就緒（'+fmtMB(out.blob.size)+'）'; clearErr(slot); }
+    catch(err){ pv.classList.remove('show'); state.blobs[slot]=null; alert('照片讀取失敗，請改用相機或相簿重新選擇。'); }
+  });
+});
+$$('.preview .re').forEach(btn=>btn.addEventListener('click',()=>{
+  const slot=btn.closest('.preview').dataset.pv; state.blobs[slot]=null;
+  $('.preview[data-pv="'+slot+'"]').classList.remove('show'); $('input[type=file][data-slot="'+slot+'"]').value='';
+}));
+async function compress(file){
+  try{
+    const bm=await createImageBitmap(file,{imageOrientation:'from-image'});
+    const scale=Math.min(1, MAX_EDGE/Math.max(bm.width,bm.height));
+    const w=Math.round(bm.width*scale), h=Math.round(bm.height*scale);
+    const cv=document.createElement('canvas'); cv.width=w; cv.height=h; cv.getContext('2d').drawImage(bm,0,0,w,h);
+    const blob=await new Promise(r=>cv.toBlob(r,'image/jpeg',QUALITY)); if(blob) return {blob, ext:'jpg', mime:'image/jpeg'};
+  }catch(e){}
+  const ext=(file.name.split('.').pop()||'jpg').toLowerCase(); return {blob:file, ext, mime:file.type||'application/octet-stream'};
+}
+
+/* 工具 */
+function fmtMB(b){ return (b/1048576).toFixed(2)+' MB'; }
+function ymd(s){ return s.replace(/-/g,''); }
+function token(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+function showErr(k){ const e=$('.field-err[data-for="'+k+'"]'); if(e) e.classList.add('show'); }
+function clearErr(k){ const e=$('.field-err[data-for="'+k+'"]'); if(e) e.classList.remove('show'); }
+function resetBranchA(){ $("#serial").value=''; $("#codebox").classList.add('empty'); $("#codebox").textContent='選好區域、X／Y 格線並填末三碼後，自動顯示完整孔號'; state.blobs.done=null; $('.preview[data-pv="done"]').classList.remove('show'); const f=$('input[type=file][data-slot="done"]'); if(f) f.value=''; }
+function resetBranchB(){ $("#locNote").value=''; state.blobs.far=null; state.blobs.near=null; ['far','near'].forEach(s=>{ $('.preview[data-pv="'+s+'"]').classList.remove('show'); const f=$('input[type=file][data-slot="'+s+'"]'); if(f) f.value=''; }); }
+
+/* 檔名 */
+function buildNames(){
+  const yyyymmdd=ymd($("#workDate").value);
+  if(state.branch==='yes'){
+    const base=fullHoleCode();
+    return { done:{ work:base+'_完工.jpg', key:yyyymmdd+'/'+base+'_done__'+token()+'.jpg' } };
+  } else {
+    const areaCode=$("#area").value.replace('區',''), grid=state.gridX+state.gridY;
+    const base='TMP-'+yyyymmdd+'-'+CONFIG.PROJECT+'-'+areaCode+'-'+grid;
+    const mk=(zh,en)=>({ work:base+'_'+zh+'.jpg', key:yyyymmdd+'/'+base+'_'+en+'__'+token()+'.jpg' });
+    return { far:mk('遠','far'), near:mk('近','near') };
+  }
+}
+
+/* 驗證 */
+function validate(){
+  let ok=true; const bad=[];
+  if(!$("#workDate").value){ showErr('workDate'); ok=false; bad.push($("#workDate")); }
+  if(!state.vendor){ showErr('vendor'); ok=false; bad.push($("#vendor")); }
+  if(!$("#area").value){ showErr('area'); ok=false; bad.push($("#area")); }
+  if(!state.gridX){ showErr('gridX'); ok=false; bad.push($("#gridX")); }
+  if(!state.gridY){ showErr('gridY'); ok=false; bad.push($("#gridY")); }
+  if(!state.branch){ showErr('knows'); ok=false; bad.push($("#knows")); }
+  if(state.branch==='yes'){
+    if(!serial3()){ showErr('serial'); ok=false; bad.push($("#serial")); }
+    if(!state.blobs.done){ showErr('done'); ok=false; bad.push($('.file-zone[data-slot="done"]')); }
+  } else if(state.branch==='no'){
+    if(!$("#locNote").value.trim()){ showErr('locNote'); ok=false; bad.push($("#locNote")); }
+    if(!state.blobs.far){ showErr('far'); ok=false; bad.push($('.file-zone[data-slot="far"]')); }
+    if(!state.blobs.near){ showErr('near'); ok=false; bad.push($('.file-zone[data-slot="near"]')); }
+  }
+  if(!perimData()){ showErr('shape'); ok=false; bad.push($("#shape")); }
+  if(!ok && bad[0]) bad[0].scrollIntoView({behavior:'smooth',block:'center'});
+  return ok;
+}
+
+/* Storage 上傳 / 寫表 */
+async function uploadPhoto(key, blob, mime){
+  const url=CONFIG.SUPABASE_URL+'/storage/v1/object/'+CONFIG.BUCKET+'/'+encodeURI(key);
+  const res=await fetch(url,{ method:'POST', headers:{ apikey:CONFIG.SUPABASE_ANON, Authorization:'Bearer '+CONFIG.SUPABASE_ANON, 'Content-Type':mime, 'x-upsert':'false' }, body:blob });
+  if(!res.ok) throw new Error('照片上傳失敗 ('+res.status+')'); return key;
+}
+async function insertRow(row){
+  const url=CONFIG.SUPABASE_URL+'/rest/v1/'+CONFIG.TABLE;
+  const res=await fetch(url,{ method:'POST', headers:{ apikey:CONFIG.SUPABASE_ANON, Authorization:'Bearer '+CONFIG.SUPABASE_ANON, 'Content-Type':'application/json', Prefer:'return=minimal' }, body:JSON.stringify(row) });
+  if(!res.ok) throw new Error('資料寫入失敗 ('+res.status+')');
+}
+
+/* 送出 */
+$("#submitBtn").addEventListener('click', async ()=>{
+  if(!validate()) return;
+  const p=perimData();
+  const ov=$("#overlay"), ovT=$("#ovTitle"); ov.classList.add('show'); $("#submitBtn").disabled=true;
+  const names=buildNames(), date=$("#workDate").value;
+  const row={ work_date:date, contractor:state.vendor, knows_hole:state.branch==='yes',
+    area:$("#area").value, grid_x:state.gridX, grid_y:state.gridY,
+    shape:state.shape, dia_mm: state.shape==='圓'?parseFloat($("#dia").value):null,
+    width_mm: state.shape==='矩'?parseFloat($("#rw").value):null, height_mm: state.shape==='矩'?parseFloat($("#rh").value):null,
+    perimeter_mm:p.mm, size_label:p.label, size_note:$("#sizeNote").value.trim()||null, status:'待核' };
+  try{
+    if(state.branch==='yes'){
+      ovT.textContent='上傳照片 1/1…';
+      await uploadPhoto(names.done.key, state.blobs.done.blob, state.blobs.done.mime);
+      row.serial=serial3(); row.hole_short=fullHoleCode(); row.photo_done_path=names.done.key; row.photo_done_name=names.done.work;
+    } else {
+      ovT.textContent='上傳照片 1/2…'; await uploadPhoto(names.far.key, state.blobs.far.blob, state.blobs.far.mime);
+      ovT.textContent='上傳照片 2/2…'; await uploadPhoto(names.near.key, state.blobs.near.blob, state.blobs.near.mime);
+      row.location_note=$("#locNote").value.trim(); row.photo_far_path=names.far.key; row.photo_far_name=names.far.work; row.photo_near_path=names.near.key; row.photo_near_name=names.near.work;
+    }
+    ovT.textContent='儲存資料中…'; await insertRow(row);
+    const now=new Date(), hhmm=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+    const summary = state.branch==='yes' ? fullHoleCode() : ($("#area").value+' '+state.gridX+state.gridY);
+    pushToday({ ts:Date.now(), d:todayStr(), t:hhmm, vendor:state.vendor, summary, label:(state.shape==='圓'?'圓 ':'矩 ')+p.label, perim:p.mm });
+    ov.classList.remove('show'); showReceipt(date, names, p);
+  }catch(err){ ov.classList.remove('show'); $("#submitBtn").disabled=false; alert((err&&err.message?err.message:'上傳發生問題')+'\n請確認網路後再送出一次（重傳即可）。'); }
+});
+
+/* 回執 */
+function showReceipt(date, names, p){
+  const rows=$("#rcRows"), files=$("#rcFiles"); rows.innerHTML=''; files.innerHTML='';
+  const add=(k,v)=>rows.insertAdjacentHTML('beforeend','<div class="rc-row"><div class="k">'+k+'</div><div class="v">'+v+'</div></div>');
+  const addFile=fn=>files.insertAdjacentHTML('beforeend','<div class="fn">'+fn+'</div>');
+  add('施工日期', date); add('廠商', state.vendor); add('樓層／區域', $("#area").value); add('格線','X='+state.gridX+'　Y='+state.gridY);
+  if(state.branch==='yes'){ add('完整孔號', fullHoleCode()); } else { add('位置說明', $("#locNote").value.trim()); }
+  add('開孔', (state.shape==='圓'?'圓孔 ':'矩形孔 ')+p.label); add('周長', p.mm+' mm（'+(p.mm/1000).toFixed(2)+' m）');
+  if(state.branch==='yes'){ addFile(names.done.work); } else { addFile(names.far.work); addFile(names.near.work); }
+  $("#formArea").style.display='none'; $("#receipt").classList.add('show'); window.scrollTo(0,0);
+}
+
+/* 今日已送出 */
+const TKEY='submitted_'+CONFIG.PROJECT;
+function todayStr(){ const x=new Date(); return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0'); }
+function readAll(){ try{ return JSON.parse(localStorage.getItem(TKEY)||'[]'); }catch(e){ return window.__mem||[]; } }
+function writeAll(a){ try{ localStorage.setItem(TKEY, JSON.stringify(a)); }catch(e){ window.__mem=a; } }
+function pushToday(item){ let a=readAll(); const cut=Date.now()-7*864e5; a=a.filter(x=>x.ts&&x.ts>cut); a.push(item); writeAll(a); renderToday(); }
+function renderToday(){
+  const a=readAll().filter(x=>x.d===todayStr()); const panel=$("#todayPanel");
+  if(a.length===0){ panel.style.display='none'; return; }
+  panel.style.display='block'; $("#todayCount").textContent=a.length;
+  $("#todayList").innerHTML=a.slice().reverse().map(x=>'<div class="today-item"><div class="ti-top">'+x.t+'　'+x.vendor+'　'+x.summary+'</div><div class="ti-sub">'+x.label+'　周長 '+x.perim+' mm</div></div>').join('');
+}
+$("#todayHead").addEventListener('click',()=>$("#todayPanel").classList.toggle('open'));
+
+/* 再填下一筆（保留日期、廠商、區域；其餘清空） */
+$("#againBtn").addEventListener('click', ()=>{
+  resetBranchA(); resetBranchB(); state.branch=null; state.shape=null;
+  state.gridX=null; state.gridY=null; $$('#gridX .chip,#gridY .chip').forEach(c=>c.classList.remove('sel'));
+  $$('#knows .opt').forEach(x=>x.classList.remove('sel')); $$('#knows input').forEach(i=>i.checked=false);
+  $$('#shape .opt').forEach(x=>x.classList.remove('sel')); $$('#shape input').forEach(i=>i.checked=false);
+  $("#branchA").classList.add('hidden'); $("#branchB").classList.add('hidden'); $("#tail").classList.add('hidden');
+  $("#dimCircle").classList.add('hidden'); $("#dimRect").classList.add('hidden'); $("#dia").value=''; $("#rw").value=''; $("#rh").value='';
+  $("#perim").classList.add('empty'); $("#perim").textContent='填入尺寸後自動計算周長'; $("#sizeNote").value='';
+  $$('.field-err').forEach(e=>e.classList.remove('show'));
+  $("#submitBtn").disabled=$("#cfgbar").classList.contains('show');
+  $("#receipt").classList.remove('show'); $("#formArea").style.display='block'; renderToday(); window.scrollTo(0,0);
+});
+</script>
+</body>
+</html>
