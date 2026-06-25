@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>802BP 管線穿隔柵補強照片上傳表</title>
 <style>
   :root{
@@ -516,6 +516,8 @@ async function insertRow(row){
 $("#submitBtn").addEventListener('click', async ()=>{
   if(!validate()) return;
   const p=perimData();
+  const dupKey = state.branch==='yes' ? fullHoleCode() : ($("#area").value+' '+state.gridX+state.gridY);
+  if(dupKey && isDupToday(dupKey) && !confirm('「'+dupKey+'」今天已經送出過了。\n確定要再送一次嗎？')) return;
   const ov=$("#overlay"), ovT=$("#ovTitle"); ov.classList.add('show'); $("#submitBtn").disabled=true;
   if(!state.names) state.names=buildNames();
   const names=state.names, date=$("#workDate").value;
@@ -565,6 +567,7 @@ function showReceipt(date, names, p){
 const TKEY='submitted_'+CONFIG.PROJECT;
 function todayStr(){ const x=new Date(); return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0'); }
 function readAll(){ try{ return JSON.parse(localStorage.getItem(TKEY)||'[]'); }catch(e){ return window.__mem||[]; } }
+function isDupToday(summary){ return readAll().some(x=>x.d===todayStr() && x.summary===summary); }
 function writeAll(a){ try{ localStorage.setItem(TKEY, JSON.stringify(a)); }catch(e){ window.__mem=a; } }
 function pushToday(item){ let a=readAll(); const cut=Date.now()-7*864e5; a=a.filter(x=>x.ts&&x.ts>cut); a.push(item); writeAll(a); renderToday(); }
 function renderToday(){

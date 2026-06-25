@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import Nav from '@/components/Nav'
+import PhotoCell from '@/components/PhotoCell'
 import { createServerClient, TABLE, BUCKET } from '@/lib/supabase'
 import { getCurrentWeekRange } from '@/lib/utils'
 
@@ -89,7 +90,10 @@ export default async function DashboardPage({ searchParams }: { searchParams: Re
           <div style={card}><div style={{ fontSize: 22, fontWeight: 700 }}>{pending}</div><div style={{ color: 'var(--text-secondary)', fontSize: 12 }}>待寄</div></div>
           <div style={card}><div style={{ fontSize: 22, fontWeight: 700 }}>{sent}</div><div style={{ color: 'var(--text-secondary)', fontSize: 12 }}>已寄</div></div>
           {rows.length > 0 && (
-            <a href={`/api/export/photos?${zipQs}`} style={{ ...card, display: 'flex', alignItems: 'center', textDecoration: 'none', color: 'var(--accent)', fontWeight: 600, fontSize: 14 }}>⬇ 打包下載照片(zip)</a>
+            <a href={`/api/export/photos?${zipQs}`} style={{ ...card, display: 'flex', alignItems: 'center', textDecoration: 'none', color: 'var(--accent)', fontWeight: 600, fontSize: 14 }}>⬇ 照片打包(zip)</a>
+          )}
+          {rows.length > 0 && (
+            <a href={`/api/export/data?${zipQs}`} style={{ ...card, display: 'flex', alignItems: 'center', textDecoration: 'none', color: 'var(--accent)', fontWeight: 600, fontSize: 14 }}>⬇ 匯出資料(Excel)</a>
           )}
         </section>
 
@@ -106,7 +110,12 @@ export default async function DashboardPage({ searchParams }: { searchParams: Re
               </tr></thead>
               <tbody>
                 {rows.map(r => {
-                  const photos = [r.photo_done_path, r.photo_far_path, r.photo_near_path].filter(Boolean) as string[]
+                  const rowPhotos = [
+                    { label: '完工', path: r.photo_done_path },
+                    { label: '遠', path: r.photo_far_path },
+                    { label: '近', path: r.photo_near_path },
+                  ].map(x => ({ label: x.label, url: x.path ? signed.get(x.path) : undefined }))
+                    .filter((x): x is { label: string; url: string } => !!x.url)
                   return (
                     <tr key={r.id}>
                       <td style={td}>{r.work_date}</td>
@@ -115,18 +124,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Re
                       <td style={td}>{r.area || '—'} {r.grid_x}{r.grid_y}</td>
                       <td style={td}>{r.size_label || '—'}</td>
                       <td style={td}>{r.status === '已寄' ? '已寄' : '待寄'}</td>
-                      <td style={td}>
-                        <div style={{ display: 'flex', gap: 4 }}>
-                          {photos.slice(0, 3).map((p, i) => {
-                            const url = signed.get(p)
-                            return url ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img key={i} src={url} alt="" style={{ width: 36, height: 36, objectFit: 'cover', borderRadius: 4, border: '1px solid var(--border)' }} />
-                            ) : null
-                          })}
-                          {photos.length === 0 && <span style={{ color: 'var(--text-secondary)' }}>無</span>}
-                        </div>
-                      </td>
+                      <td style={td}><PhotoCell photos={rowPhotos} /></td>
                       <td style={td}><Link href={`/dashboard/${r.id}`} style={{ color: 'var(--accent)', fontSize: 13 }}>明細</Link></td>
                     </tr>
                   )
