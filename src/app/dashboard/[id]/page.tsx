@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import Nav from '@/components/Nav'
 import StatusToggle from '@/components/StatusToggle'
+import DeleteButton from '@/components/DeleteButton'
 import { createServerClient, TABLE, BUCKET } from '@/lib/supabase'
 import { photoFileName, type PhotoKind } from '@/lib/naming'
 
@@ -51,8 +52,9 @@ export default async function DetailPage({ params }: { params: { id: string } })
         <Link href="/dashboard" style={{ color: 'var(--text-secondary)', fontSize: 13, textDecoration: 'none' }}>← 回總覽</Link>
         <h1 style={{ fontSize: 20, margin: '8px 0 16px' }}>{r.hole_short || r.location_note || '上傳明細'}</h1>
 
-        <div style={{ marginBottom: 20 }}>
+        <div style={{ marginBottom: 20, display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
           <StatusToggle id={r.id} status={r.status} />
+          <DeleteButton id={r.id} />
         </div>
 
         <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>

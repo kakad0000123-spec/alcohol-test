@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import Nav from '@/components/Nav'
-import PhotoCell from '@/components/PhotoCell'
+import RecordsTable from '@/components/RecordsTable'
 import { createServerClient, TABLE, BUCKET } from '@/lib/supabase'
 import { getCurrentWeekRange } from '@/lib/utils'
 
@@ -28,8 +28,6 @@ type Row = {
 }
 
 const card: React.CSSProperties = { background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, padding: '12px 16px', minWidth: 96 }
-const td: React.CSSProperties = { padding: '8px 10px', borderBottom: '1px solid var(--border)', fontSize: 13, verticalAlign: 'top' }
-const th: React.CSSProperties = { ...td, color: 'var(--text-secondary)', fontWeight: 600, textAlign: 'left', whiteSpace: 'nowrap' }
 const inp: React.CSSProperties = { padding: '6px 8px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: 13 }
 
 export default async function DashboardPage({ searchParams }: { searchParams: Record<string, string | undefined> }) {
@@ -54,6 +52,18 @@ export default async function DashboardPage({ searchParams }: { searchParams: Re
     const { data: urls } = await db.storage.from(BUCKET).createSignedUrls(paths, 600)
     for (const u of urls || []) if (u.path && u.signedUrl) signed.set(u.path, u.signedUrl)
   }
+
+  const recordRows = rows.map(r => ({
+    id: r.id, work_date: r.work_date, contractor: r.contractor, knows_hole: r.knows_hole,
+    serial: r.serial, hole_short: r.hole_short, area: r.area, grid_x: r.grid_x, grid_y: r.grid_y,
+    location_note: r.location_note, size_label: r.size_label, status: r.status,
+    photos: [
+      { label: '完工', path: r.photo_done_path },
+      { label: '遠', path: r.photo_far_path },
+      { label: '近', path: r.photo_near_path },
+    ].map(x => ({ label: x.label, url: x.path ? signed.get(x.path) : undefined }))
+      .filter((x): x is { label: string; url: string } => !!x.url),
+  }))
 
   const pending = rows.filter(r => r.status !== '已寄').length
   const sent = rows.filter(r => r.status === '已寄').length
@@ -102,36 +112,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Re
         {rows.length === 0 ? (
           <p style={{ color: 'var(--text-secondary)', marginTop: 20 }}>此範圍尚無上傳資料。</p>
         ) : (
-          <div style={{ overflowX: 'auto', marginTop: 8 }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead><tr>
-                <th style={th}>施工日</th><th style={th}>廠商</th><th style={th}>孔號 / 位置</th>
-                <th style={th}>區域・格線</th><th style={th}>尺寸</th><th style={th}>狀態</th><th style={th}>照片</th><th style={th}></th>
-              </tr></thead>
-              <tbody>
-                {rows.map(r => {
-                  const rowPhotos = [
-                    { label: '完工', path: r.photo_done_path },
-                    { label: '遠', path: r.photo_far_path },
-                    { label: '近', path: r.photo_near_path },
-                  ].map(x => ({ label: x.label, url: x.path ? signed.get(x.path) : undefined }))
-                    .filter((x): x is { label: string; url: string } => !!x.url)
-                  return (
-                    <tr key={r.id}>
-                      <td style={td}>{r.work_date}</td>
-                      <td style={td}>{r.contractor || '—'}</td>
-                      <td style={td}>{r.knows_hole ? <span style={{ fontFamily: 'monospace' }}>{r.hole_short || r.serial || '—'}</span> : <span style={{ color: 'var(--text-secondary)' }}>{r.location_note || '（不知道孔號）'}</span>}</td>
-                      <td style={td}>{r.area || '—'} {r.grid_x}{r.grid_y}</td>
-                      <td style={td}>{r.size_label || '—'}</td>
-                      <td style={td}>{r.status === '已寄' ? '已寄' : '待寄'}</td>
-                      <td style={td}><PhotoCell photos={rowPhotos} /></td>
-                      <td style={td}><Link href={`/dashboard/${r.id}`} style={{ color: 'var(--accent)', fontSize: 13 }}>明細</Link></td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
+          <RecordsTable rows={recordRows} />
         )}
       </main>
     </>
