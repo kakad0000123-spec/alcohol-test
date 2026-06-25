@@ -14,5 +14,9 @@ export function createServerClient() {
       autoRefreshToken: false,
       persistSession: false,
     },
+    // 關閉 Next.js 對底層 PostgREST GET 的 fetch 快取，避免後台讀到舊資料
+    global: {
+      fetch: (input: RequestInfo | URL, init?: RequestInit) => fetch(input, { ...init, cache: 'no-store' }),
+    },
   })
 }
