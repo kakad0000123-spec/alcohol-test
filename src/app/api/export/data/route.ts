@@ -62,7 +62,7 @@ export async function GET(req: NextRequest) {
     '近檔名': r.photo_near_name || '',
     '狀態': r.status || '',
     '備註': r.size_note || '',
-    '上傳時間': r.created_at ? new Date(r.created_at).toLocaleString('zh-TW') : '',
+    '上傳時間': r.created_at ? new Date(r.created_at).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' }) : '',
   }))
 
   const ws = XLSX.utils.json_to_sheet(records)

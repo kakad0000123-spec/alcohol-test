@@ -41,7 +41,7 @@ export default async function DetailPage({ params }: { params: { id: string } })
     ['尺寸', r.size_label || '—'],
     ['周長(mm)', r.perimeter_mm ?? '—'],
     ['備註', r.size_note || '—'],
-    ['上傳時間', r.created_at ? new Date(r.created_at).toLocaleString('zh-TW') : '—'],
+    ['上傳時間', r.created_at ? new Date(r.created_at).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' }) : '—'],
   ]
 
   return (
