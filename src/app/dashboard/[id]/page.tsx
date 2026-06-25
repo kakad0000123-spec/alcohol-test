@@ -3,8 +3,11 @@ import { notFound } from 'next/navigation'
 import Nav from '@/components/Nav'
 import StatusToggle from '@/components/StatusToggle'
 import DeleteButton from '@/components/DeleteButton'
+import EditRecordForm from '@/components/EditRecordForm'
 import { createServerClient, TABLE, BUCKET } from '@/lib/supabase'
 import { photoFileName, type PhotoKind } from '@/lib/naming'
+import { getAuthUser } from '@/lib/auth'
+import { isAdmin, ownsContractorRow } from '@/lib/access'
 
 export const dynamic = 'force-dynamic'
 
@@ -12,9 +15,14 @@ const cell: React.CSSProperties = { padding: '8px 0', borderBottom: '1px solid v
 const keyCell: React.CSSProperties = { ...cell, color: 'var(--text-secondary)', width: 130, verticalAlign: 'top' }
 
 export default async function DetailPage({ params }: { params: { id: string } }) {
+  const user = await getAuthUser()
+  const admin = isAdmin(user)
+
   const db = createServerClient()
   const { data: r } = await db.from(TABLE).select('*').eq('id', params.id).single()
   if (!r) notFound()
+  // vendor 只能看自己廠商的資料；猜別人的 id 一律 404（fail-closed，不洩漏存在與否）
+  if (!ownsContractorRow(user, r.contractor)) notFound()
 
   const photoDefs = [
     { k: 'done' as PhotoKind, label: '完工照', path: r.photo_done_path as string | null },
@@ -47,18 +55,20 @@ export default async function DetailPage({ params }: { params: { id: string } })
 
   return (
     <>
-      <Nav />
-      <main style={{ maxWidth: 860, margin: '0 auto', padding: '20px' }}>
+      <Nav user={user} />
+      <main style={{ maxWidth: 980, margin: '0 auto', padding: '20px' }}>
         <Link href="/dashboard" style={{ color: 'var(--text-secondary)', fontSize: 13, textDecoration: 'none' }}>← 回總覽</Link>
         <h1 style={{ fontSize: 20, margin: '8px 0 16px' }}>{r.hole_short || r.location_note || '上傳明細'}</h1>
 
-        <div style={{ marginBottom: 20, display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-          <StatusToggle id={r.id} status={r.status} />
-          <DeleteButton id={r.id} />
-        </div>
+        {admin && (
+          <div style={{ marginBottom: 20, display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+            <StatusToggle id={r.id} status={r.status} />
+            <DeleteButton id={r.id} />
+          </div>
+        )}
 
         <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
-          <table style={{ borderCollapse: 'collapse', flex: '1 1 320px' }}>
+          <table style={{ borderCollapse: 'collapse', flex: '1 1 300px', alignSelf: 'flex-start' }}>
             <tbody>
               {fields.map(([k, v]) => (
                 <tr key={k}><td style={keyCell}>{k}</td><td style={cell}>{v}</td></tr>
@@ -66,7 +76,7 @@ export default async function DetailPage({ params }: { params: { id: string } })
             </tbody>
           </table>
 
-          <div style={{ flex: '1 1 360px' }}>
+          <div style={{ flex: '1 1 320px' }}>
             {photos.length === 0 ? <p style={{ color: 'var(--text-secondary)' }}>無照片</p> : photos.map(p => (
               <div key={p.label} style={{ marginBottom: 16 }}>
                 <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 6 }}>{p.label} — {p.fname}</div>
@@ -82,6 +92,24 @@ export default async function DetailPage({ params }: { params: { id: string } })
               </div>
             ))}
           </div>
+        </div>
+
+        <div style={{ marginTop: 24 }}>
+          <EditRecordForm initial={{
+            id: r.id,
+            knows_hole: !!r.knows_hole,
+            work_date: r.work_date,
+            area: r.area,
+            grid_x: r.grid_x,
+            grid_y: r.grid_y,
+            serial: r.serial,
+            location_note: r.location_note,
+            shape: r.shape,
+            dia_mm: r.dia_mm,
+            width_mm: r.width_mm,
+            height_mm: r.height_mm,
+            size_note: r.size_note,
+          }} />
         </div>
       </main>
     </>

@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase'
+import { getAuthUserFromRequest } from '@/lib/auth'
+import { isAdmin } from '@/lib/access'
 
-// GET /api/report-emails — 收件人清單
-export async function GET() {
+// GET /api/report-emails — 收件人清單；superadmin only
+export async function GET(req: NextRequest) {
+  if (!isAdmin(await getAuthUserFromRequest(req))) return NextResponse.json({ error: '權限不足' }, { status: 403 })
   const db = createServerClient()
   const { data, error } = await db
     .from('report_emails')
@@ -13,8 +16,9 @@ export async function GET() {
   return NextResponse.json({ emails: data || [] })
 }
 
-// POST /api/report-emails { email, label, kind } — 新增收件人
+// POST /api/report-emails { email, label, kind } — 新增收件人；superadmin only
 export async function POST(req: NextRequest) {
+  if (!isAdmin(await getAuthUserFromRequest(req))) return NextResponse.json({ error: '權限不足' }, { status: 403 })
   const body = await req.json().catch(() => ({}))
   const email = (body.email || '').trim()
   const label = (body.label || '').trim() || null

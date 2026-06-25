@@ -3,6 +3,8 @@ import Nav from '@/components/Nav'
 import RecordsTable from '@/components/RecordsTable'
 import { createServerClient, TABLE, BUCKET } from '@/lib/supabase'
 import { getCurrentWeekRange } from '@/lib/utils'
+import { getAuthUser } from '@/lib/auth'
+import { scopeContractor, isAdmin } from '@/lib/access'
 
 export const dynamic = 'force-dynamic'
 
@@ -31,15 +33,19 @@ const card: React.CSSProperties = { background: 'var(--bg-card)', border: '1px s
 const inp: React.CSSProperties = { padding: '6px 8px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: 13 }
 
 export default async function DashboardPage({ searchParams }: { searchParams: Record<string, string | undefined> }) {
+  const user = await getAuthUser()
+  const admin = isAdmin(user)
+
   const week = getCurrentWeekRange()
   const start = searchParams.start || week.start
   const end = searchParams.end || week.end
   const fStatus = searchParams.status || ''
-  const fContractor = searchParams.contractor || ''
+  const fContractor = admin ? (searchParams.contractor || '') : ''  // vendor 不可自選廠商
   const fArea = searchParams.area || ''
 
   const db = createServerClient()
   let q = db.from(TABLE).select('*').gte('work_date', start).lte('work_date', end)
+  q = scopeContractor(q, user)                       // vendor 強制只看自己 contractor
   if (fStatus) q = q.eq('status', fStatus)
   if (fContractor) q = q.eq('contractor', fContractor)
   if (fArea) q = q.eq('area', fArea)
@@ -71,10 +77,10 @@ export default async function DashboardPage({ searchParams }: { searchParams: Re
 
   return (
     <>
-      <Nav />
+      <Nav user={user} />
       <main style={{ maxWidth: 1100, margin: '0 auto', padding: '20px' }}>
         <header style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-          <h1 style={{ fontSize: 20, margin: 0 }}>上傳總覽</h1>
+          <h1 style={{ fontSize: 20, margin: 0 }}>上傳總覽{!admin && user?.contractor ? `（${user.contractor}）` : ''}</h1>
           <span style={{ color: 'var(--text-secondary)', fontSize: 13 }}>{start} ～ {end}</span>
         </header>
 
@@ -85,9 +91,11 @@ export default async function DashboardPage({ searchParams }: { searchParams: Re
           <select name="status" defaultValue={fStatus} style={inp}>
             <option value="">狀態(全部)</option><option value="待寄">待寄</option><option value="已寄">已寄</option>
           </select>
-          <select name="contractor" defaultValue={fContractor} style={inp}>
-            <option value="">廠商(全部)</option>{CONTRACTORS.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
+          {admin && (
+            <select name="contractor" defaultValue={fContractor} style={inp}>
+              <option value="">廠商(全部)</option>{CONTRACTORS.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          )}
           <select name="area" defaultValue={fArea} style={inp}>
             <option value="">區域(全部)</option>{AREAS.map(a => <option key={a} value={a}>{a}</option>)}
           </select>
@@ -112,7 +120,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Re
         {rows.length === 0 ? (
           <p style={{ color: 'var(--text-secondary)', marginTop: 20 }}>此範圍尚無上傳資料。</p>
         ) : (
-          <RecordsTable rows={recordRows} />
+          <RecordsTable rows={recordRows} canManage={admin} />
         )}
       </main>
     </>

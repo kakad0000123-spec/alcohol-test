@@ -32,7 +32,8 @@ function Badge({ status }: { status: string }) {
   return <span style={{ fontSize: 12, fontWeight: 600, padding: '2px 8px', borderRadius: 99, background: sent ? 'rgba(74,222,128,.15)' : 'rgba(251,146,60,.15)', color: sent ? '#4ade80' : '#fb923c' }}>{sent ? '已寄' : '待寄'}</span>
 }
 
-export default function RecordsTable({ rows }: { rows: RecordRow[] }) {
+// canManage：superadmin 才有勾選/批次（標記已寄/待寄/刪除）；vendor 只能看 + 進明細編輯。
+export default function RecordsTable({ rows, canManage = false }: { rows: RecordRow[]; canManage?: boolean }) {
   const [sel, setSel] = useState<Set<string>>(new Set())
   const [busy, setBusy] = useState(false)
   const [confirmDel, setConfirmDel] = useState(false)
@@ -56,7 +57,7 @@ export default function RecordsTable({ rows }: { rows: RecordRow[] }) {
 
   return (
     <>
-      {sel.size > 0 && (
+      {canManage && sel.size > 0 && (
         <div style={{ position: 'sticky', top: 0, zIndex: 5, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 14px', marginTop: 8 }}>
           <span style={{ fontSize: 14 }}>已選 <b>{sel.size}</b> 筆</span>
           <button disabled={busy} onClick={() => batch('已寄')} style={barBtn}>標記已寄</button>
@@ -77,14 +78,14 @@ export default function RecordsTable({ rows }: { rows: RecordRow[] }) {
       <div style={{ overflowX: 'auto', marginTop: 8 }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead><tr>
-            <th style={{ ...th, width: 32 }}><input type="checkbox" checked={allSelected} onChange={toggleAll} aria-label="全選" /></th>
+            {canManage && <th style={{ ...th, width: 32 }}><input type="checkbox" checked={allSelected} onChange={toggleAll} aria-label="全選" /></th>}
             <th style={th}>施工日</th><th style={th}>廠商</th><th style={th}>孔號 / 位置</th>
             <th style={th}>區域・格線</th><th style={th}>尺寸</th><th style={th}>狀態</th><th style={th}>照片</th><th style={th}></th>
           </tr></thead>
           <tbody>
             {rows.map(r => (
-              <tr key={r.id} style={sel.has(r.id) ? { background: 'rgba(59,130,246,.08)' } : undefined}>
-                <td style={td}><input type="checkbox" checked={sel.has(r.id)} onChange={() => toggle(r.id)} aria-label="選取" /></td>
+              <tr key={r.id} style={canManage && sel.has(r.id) ? { background: 'rgba(59,130,246,.08)' } : undefined}>
+                {canManage && <td style={td}><input type="checkbox" checked={sel.has(r.id)} onChange={() => toggle(r.id)} aria-label="選取" /></td>}
                 <td style={td}>{r.work_date}</td>
                 <td style={td}>{r.contractor || '—'}</td>
                 <td style={td}>{r.knows_hole ? <span style={{ fontFamily: 'monospace' }}>{r.hole_short || r.serial || '—'}</span> : <span style={{ color: 'var(--text-secondary)' }}>{r.location_note || '（不知道孔號）'}</span>}</td>
@@ -92,7 +93,7 @@ export default function RecordsTable({ rows }: { rows: RecordRow[] }) {
                 <td style={td}>{r.size_label || '—'}</td>
                 <td style={td}><Badge status={r.status} /></td>
                 <td style={td}><PhotoCell photos={r.photos} /></td>
-                <td style={td}><Link href={`/dashboard/${r.id}`} style={{ color: 'var(--accent)', fontSize: 13 }}>明細</Link></td>
+                <td style={td}><Link href={`/dashboard/${r.id}`} style={{ color: 'var(--accent)', fontSize: 13 }}>{canManage ? '明細' : '明細／編輯'}</Link></td>
               </tr>
             ))}
           </tbody>

@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, TABLE, BUCKET } from '@/lib/supabase'
+import { getAuthUserFromRequest } from '@/lib/auth'
+import { isAdmin } from '@/lib/access'
 
-// POST /api/records/batch { ids: string[], op: '已寄' | '待寄' | 'delete' }
+// POST /api/records/batch { ids: string[], op: '已寄' | '待寄' | 'delete' } — superadmin only
 export async function POST(req: NextRequest) {
+  const user = await getAuthUserFromRequest(req)
+  if (!isAdmin(user)) return NextResponse.json({ error: '權限不足' }, { status: 403 })
+
   const { ids, op } = await req.json().catch(() => ({}))
   if (!Array.isArray(ids) || ids.length === 0) {
     return NextResponse.json({ error: '未選取資料' }, { status: 400 })

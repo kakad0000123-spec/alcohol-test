@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase'
+import { getAuthUserFromRequest } from '@/lib/auth'
+import { isAdmin } from '@/lib/access'
 
-// GET /api/report-config — 寄送設定（單列 id=1）
-export async function GET() {
+// GET /api/report-config — 寄送設定（單列 id=1）；superadmin only
+export async function GET(req: NextRequest) {
+  if (!isAdmin(await getAuthUserFromRequest(req))) return NextResponse.json({ error: '權限不足' }, { status: 403 })
   const db = createServerClient()
   const { data, error } = await db
     .from('report_config')
@@ -13,8 +16,9 @@ export async function GET() {
   return NextResponse.json({ config: data })
 }
 
-// PATCH /api/report-config { enabled?, send_dow?, mail_from? }
+// PATCH /api/report-config { enabled?, send_dow?, mail_from? }；superadmin only
 export async function PATCH(req: NextRequest) {
+  if (!isAdmin(await getAuthUserFromRequest(req))) return NextResponse.json({ error: '權限不足' }, { status: 403 })
   const body = await req.json().catch(() => ({}))
   const patch: Record<string, unknown> = { updated_at: new Date().toISOString() }
   if (typeof body.enabled === 'boolean') patch.enabled = body.enabled

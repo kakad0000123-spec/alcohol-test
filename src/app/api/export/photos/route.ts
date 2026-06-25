@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import JSZip from 'jszip'
 import { createServerClient, TABLE, BUCKET } from '@/lib/supabase'
 import { photoFileName, type PhotoKind } from '@/lib/naming'
+import { getAuthUserFromRequest } from '@/lib/auth'
+import { vendorContractor } from '@/lib/access'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -25,12 +27,16 @@ export async function GET(req: NextRequest) {
   const start = sp.get('start')
   const end = sp.get('end')
 
+  const user = await getAuthUserFromRequest(req)
   const db = createServerClient()
   let q = db.from(TABLE).select('*').order('work_date', { ascending: true })
   if (start) q = q.gte('work_date', start)
   if (end) q = q.lte('work_date', end)
   const status = sp.get('status'); if (status) q = q.eq('status', status)
-  const contractor = sp.get('contractor'); if (contractor) q = q.eq('contractor', contractor)
+  // vendor 強制只匯出自己廠商（忽略 query 的 contractor）；admin 才吃 query 參數
+  const vc = vendorContractor(user)
+  if (vc !== null) q = q.eq('contractor', vc)
+  else { const contractor = sp.get('contractor'); if (contractor) q = q.eq('contractor', contractor) }
   const area = sp.get('area'); if (area) q = q.eq('area', area)
 
   const { data, error } = await q
