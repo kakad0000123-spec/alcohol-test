@@ -37,7 +37,7 @@
 - 這兩坑有 PostToolUse hook 防呆（`.claude/hooks/postedit-guards.sh`）：改到相關檔案會自動 grep 警告，看到警告要處理不要無視。
 
 ## 收工規則（每次任務結束照做）
-- `docs/devlog/YYYY-MM-DD_主題.md` 寫一筆：三段「做了什麼／為什麼／踩了坑」各 ≤5 行，不貼大段 code。
+- `docs/devlog/YYYY-MM-DD_主題.md` 寫一筆：三段「做了什麼／為什麼／踩了坑」各 ≤5 行，不貼大段 code；有否決過方案時加第四段「**否決了什麼/為什麼**」（墓碑——被否決的方案是純金 why，防未來重提）。
 - devlog 超過 15 檔或最舊超過 30 天 → 主動提議蒸餾進 `~/wiki` 後 `git rm`（git history 就是備份，敢刪）。
 - 有跨專案可重用的結論 → 提議蒸餾進 `~/wiki`。
 - UX 巡檢用專案 skill `/ux-audit`（輸出到 `audit/<主題>-<日期>/`）。
