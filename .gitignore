@@ -31,6 +31,11 @@ yarn-error.log*
 # vercel
 .vercel
 
+# claude 本地產物(worktree 不准進版控;settings.local/launch 是個人本機設定)
+.claude/worktrees/
+.claude/settings.local.json
+.claude/launch.json
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
