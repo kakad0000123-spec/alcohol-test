@@ -20,6 +20,7 @@ export default function Nav({ user }: { user: NavUser | null }) {
   return (
     <nav style={{ display: 'flex', gap: 18, alignItems: 'center', padding: '12px 20px', borderBottom: '1px solid var(--border)' }}>
       <Link href="/dashboard" style={link}>本週總覽</Link>
+      <Link href="/dashboard/stats" style={link}>儀表板</Link>
       {isAdmin && <Link href="/dashboard/settings" style={link}>寄件設定</Link>}
       {isAdmin && <Link href="/dashboard/users" style={link}>帳號管理</Link>}
       <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
