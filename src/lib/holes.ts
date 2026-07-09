@@ -45,3 +45,50 @@ export function computePerim(
   }
   return null
 }
+
+// ── 扁鐵補修（FB25×4.5）──────────────────────────────────────────
+// 補孔周邊需配合修補的扁鐵，一孔可穿過多支隔柵、各補一段，故長度＝多段相加。
+// 重量由長度即時換算、不入庫（純長度×固定斷面，避免與長度不同步）。
+export const FLATBAR_SPEC = 'FB25*4.5'
+// 鋼材單位重 kg/m = 寬 × 厚 × 0.00785 = 25 × 4.5 × 0.00785 = 0.883125 kg/m；
+// kg/m 與 g/mm 數值相等，故 g/mm = 0.883125。
+export const FLATBAR_G_PER_MM = 25 * 4.5 * 0.00785
+
+// 長度(mm) → 重量(g)，四捨五入到整數 g；無長度回 null
+export function flatbarWeightG(mm: number | null | undefined): number | null {
+  if (mm == null || !(mm > 0)) return null
+  return Math.round(mm * FLATBAR_G_PER_MM)
+}
+
+// 扁鐵算式解析結果：empty＝沒填（合法）／invalid＝格式錯／ok＝解析成功
+export type FlatbarParse =
+  | { state: 'empty' }
+  | { state: 'invalid' }
+  | { state: 'ok'; mm: number; normalized: string }
+
+// 扁鐵算式 → 長度 mm。只認 數字/＋/＊（× 視為 *，全形轉半形），逐段「長×支」相乘再相加。
+// 存入 flatbar_raw 的是正規化後字串（可再解析），flatbar_mm 是本函式算出的長度。
+export function parseFlatbar(raw: string | null | undefined): FlatbarParse {
+  const s0 = (raw ?? '').trim()
+  if (!s0) return { state: 'empty' }
+  const s = s0
+    .replace(/[×✕✖＊]/g, '*')
+    .replace(/＋/g, '+')
+    .replace(/[０-９]/g, d => String('０１２３４５６７８９'.indexOf(d)))
+    .replace(/\s+/g, '')
+  if (!/^[0-9.+*]+$/.test(s)) return { state: 'invalid' }
+  let total = 0
+  for (const term of s.split('+')) {
+    if (term === '') return { state: 'invalid' } // 8++9 / 結尾 +
+    let prod = 1
+    for (const factor of term.split('*')) {
+      if (factor === '') return { state: 'invalid' } // 8**2 / 結尾 *
+      const n = Number(factor)
+      if (!Number.isFinite(n)) return { state: 'invalid' }
+      prod *= n
+    }
+    total += prod
+  }
+  if (!(total > 0)) return { state: 'invalid' }
+  return { state: 'ok', mm: Math.round(total * 10) / 10, normalized: s }
+}

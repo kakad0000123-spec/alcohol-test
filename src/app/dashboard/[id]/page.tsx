@@ -8,6 +8,7 @@ import { createServerClient, TABLE, BUCKET } from '@/lib/supabase'
 import { photoFileName, type PhotoKind } from '@/lib/naming'
 import { getAuthUser } from '@/lib/auth'
 import { isAdmin, ownsContractorRow } from '@/lib/access'
+import { flatbarWeightG } from '@/lib/holes'
 
 export const dynamic = 'force-dynamic'
 
@@ -49,6 +50,7 @@ export default async function DetailPage({ params }: { params: { id: string } })
     ['形狀', r.shape || '—'],
     ['尺寸', r.size_label || '—'],
     ['周長(mm)', r.perimeter_mm ?? '—'],
+    ['扁鐵補修', r.flatbar_mm != null ? `${r.flatbar_mm} mm（≈ ${flatbarWeightG(r.flatbar_mm)} g）` : '—'],
     ['備註', r.size_note || '—'],
     ['上傳時間', r.created_at ? new Date(r.created_at).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' }) : '—'],
   ]
@@ -109,6 +111,7 @@ export default async function DetailPage({ params }: { params: { id: string } })
             width_mm: r.width_mm,
             height_mm: r.height_mm,
             size_note: r.size_note,
+            flatbar_raw: r.flatbar_raw,
           }} />
         </div>
       </main>

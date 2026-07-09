@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { computePerim, fullHoleCode } from '@/lib/holes'
+import { computePerim, fullHoleCode, parseFlatbar, flatbarWeightG } from '@/lib/holes'
 
 export type EditInitial = {
   id: string
@@ -18,6 +18,7 @@ export type EditInitial = {
   width_mm: number | null
   height_mm: number | null
   size_note: string | null
+  flatbar_raw: string | null
 }
 
 const AREAS = ['3200區1.5F EL03500', '2100區1.5F EL03800', '1100區2F EL04500', '2100區1.5F EL04600', '1100區3F EL08800', '2100區2F EL08800', '1100區4F EL14300', '1100區5F EL18800']
@@ -41,6 +42,7 @@ export default function EditRecordForm({ initial }: { initial: EditInitial }) {
     width_mm: initial.width_mm != null ? String(initial.width_mm) : '',
     height_mm: initial.height_mm != null ? String(initial.height_mm) : '',
     size_note: initial.size_note || '',
+    flatbar_raw: initial.flatbar_raw || '',
   })
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState('')
@@ -50,11 +52,13 @@ export default function EditRecordForm({ initial }: { initial: EditInitial }) {
   // 即時預覽（伺服器存檔時會以同一套規則重算為準）
   const num = (s: string) => { const n = parseFloat(s); return Number.isFinite(n) ? n : null }
   const perim = computePerim(f.shape, num(f.dia_mm), num(f.width_mm), num(f.height_mm))
+  const fb = parseFlatbar(f.flatbar_raw)
   const code = initial.knows_hole ? fullHoleCode(f.area, f.grid_x, f.grid_y, f.serial) : null
 
   const areaOptions = AREAS.includes(f.area) || !f.area ? AREAS : [f.area, ...AREAS]
 
   async function save() {
+    if (parseFlatbar(f.flatbar_raw).state === 'invalid') { setMsg('扁鐵格式只能用數字、＋、＊') ; return }
     setBusy(true)
     setMsg('')
     const payload = {
@@ -67,6 +71,7 @@ export default function EditRecordForm({ initial }: { initial: EditInitial }) {
       width_mm: f.shape === '矩' ? num(f.width_mm) : null,
       height_mm: f.shape === '矩' ? num(f.height_mm) : null,
       size_note: f.size_note.trim() || null,
+      flatbar_raw: f.flatbar_raw.trim() || null,
       ...(initial.knows_hole ? { serial: f.serial.trim() || null } : { location_note: f.location_note.trim() || null }),
     }
     const res = await fetch(`/api/records/${initial.id}`, {
@@ -137,6 +142,13 @@ export default function EditRecordForm({ initial }: { initial: EditInitial }) {
       <div style={row}>
         <label style={lab}>尺寸備註</label>
         <input style={input} value={f.size_note} onChange={e => set('size_note', e.target.value)} />
+      </div>
+
+      <div style={row}>
+        <label style={lab}>扁鐵補修（FB25×4.5，例 8*2+9+20*2）</label>
+        <input style={input} value={f.flatbar_raw} onChange={e => set('flatbar_raw', e.target.value)} placeholder="沒有免填" />
+        {fb.state === 'ok' && <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '6px 0 0' }}>扁鐵 ≈ <b>{fb.mm} mm</b>（≈ {flatbarWeightG(fb.mm)} g）</p>}
+        {fb.state === 'invalid' && <p style={{ fontSize: 12, color: '#f87171', margin: '6px 0 0' }}>格式只能用數字、＋、＊</p>}
       </div>
 
       <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginTop: 4 }}>

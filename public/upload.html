@@ -250,9 +250,9 @@
         <span class="q-num">07</span>
         <p class="q-title">孔號末三碼<span class="req">*</span></p>
         <p class="q-desc">只填現場標籤上的最後三碼（流水號），例如 001。前面的區域與格線會用上面選的自動組合，不用重打。圖面 (1)(2)(3) 是尺寸代號，不是孔號。</p>
-        <input type="text" id="serial" inputmode="numeric" maxlength="4" placeholder="例如：001">
+        <input type="text" id="serial" inputmode="numeric" maxlength="3" placeholder="例如：001">
         <div class="codebox empty" id="codebox">選好區域、X／Y 格線並填末三碼後，自動顯示完整孔號</div>
-        <div class="field-err" data-for="serial">請填寫孔號末三碼</div>
+        <div class="field-err" data-for="serial">請填孔號末三碼：1～3 位數字（例 001）</div>
       </div>
       <div class="q">
         <span class="q-num">08</span>
@@ -296,7 +296,7 @@
       <div class="q">
         <span class="q-num" id="sizeNum">10</span>
         <p class="q-title">開孔尺寸<span class="req">*</span></p>
-        <p class="q-desc">先選形狀再填尺寸，單位 mm。系統會自動算周長（計價用）。</p>
+        <p class="q-desc">先選形狀再填尺寸，單位 mm。系統會自動算周長。</p>
         <div class="opts" id="shape">
           <label class="opt"><span class="dot"></span><input type="radio" name="shape" value="圓">圓孔</label>
           <label class="opt"><span class="dot"></span><input type="radio" name="shape" value="矩">矩形孔</label>
@@ -312,6 +312,11 @@
         </div>
         <div class="perim empty" id="perim">填入尺寸後自動計算周長</div>
         <div class="field-err" data-for="shape">請選擇開孔形狀並填寫尺寸</div>
+        <div style="height:14px"></div>
+        <span class="dl" style="display:block;margin-bottom:6px;">扁鐵補修長度（FB25×4.5，選填）</span>
+        <input type="text" id="flatbar" autocomplete="off" placeholder="例如 8*2+9+20*2（沒有免填）">
+        <div class="perim empty" id="flatbarOut" style="margin-top:11px;">補孔周邊需配合修補的扁鐵，逐段輸入，＊＝同長幾支、＋＝不同段相加</div>
+        <div class="field-err" data-for="flatbar">扁鐵格式只能用數字、＋、＊，例如 8*2+9</div>
         <div style="height:14px"></div>
         <span class="dl" style="display:block;margin-bottom:6px;">備註（選填）</span>
         <textarea id="sizeNote" placeholder="如有特殊情況再填，例如異形孔"></textarea>
@@ -424,6 +429,31 @@ function calcPerim(){
   else { el.classList.add('empty'); el.textContent='填入尺寸後自動計算周長'; }
 }
 
+/* 扁鐵補修（FB25×4.5）—— 解析規則需與 src/lib/holes.ts 的 parseFlatbar 同步 */
+const FLATBAR_G_PER_MM = 25 * 4.5 * 0.00785; // = 0.883125 g/mm（kg/m 與 g/mm 數值相等）
+function parseFlatbar(raw){
+  const s0=(raw||'').trim();
+  if(!s0) return {state:'empty'};
+  const s=s0.replace(/[×✕✖＊]/g,'*').replace(/＋/g,'+').replace(/[０-９]/g,d=>'０１２３４５６７８９'.indexOf(d)).replace(/\s+/g,'');
+  if(!/^[0-9.+*]+$/.test(s)) return {state:'invalid'};
+  let total=0;
+  for(const term of s.split('+')){
+    if(term==='') return {state:'invalid'};
+    let prod=1;
+    for(const f of term.split('*')){ if(f==='') return {state:'invalid'}; const n=Number(f); if(!isFinite(n)) return {state:'invalid'}; prod*=n; }
+    total+=prod;
+  }
+  if(!(total>0)) return {state:'invalid'};
+  return {state:'ok', mm:Math.round(total*10)/10, normalized:s};
+}
+function flatbarData(){ const p=parseFlatbar($("#flatbar").value); return p.state==='ok'?p:null; }
+function calcFlatbar(){
+  const el=$("#flatbarOut"), p=parseFlatbar($("#flatbar").value);
+  if(p.state==='ok'){ const g=Math.round(p.mm*FLATBAR_G_PER_MM); el.classList.remove('empty'); el.innerHTML='扁鐵 ≈ '+p.mm+' mm（<span class="m">≈ '+g+' g</span>）'; clearErr('flatbar'); }
+  else { el.classList.add('empty'); el.textContent='補孔周邊需配合修補的扁鐵，逐段輸入，＊＝同長幾支、＋＝不同段相加'; if(p.state==='invalid') showErr('flatbar'); else clearErr('flatbar'); }
+}
+$("#flatbar").addEventListener('input', calcFlatbar);
+
 /* 檔案：選擇即壓縮＋預覽 */
 $$('input[type=file]').forEach(inp=>{
   inp.addEventListener('change', async e=>{
@@ -481,7 +511,7 @@ function validate(){
   if(!state.gridY){ showErr('gridY'); ok=false; bad.push($("#gridY")); }
   if(!state.branch){ showErr('knows'); ok=false; bad.push($("#knows")); }
   if(state.branch==='yes'){
-    if(!serial3()){ showErr('serial'); ok=false; bad.push($("#serial")); }
+    if(!/^\d{1,3}$/.test($("#serial").value.trim())){ showErr('serial'); ok=false; bad.push($("#serial")); }
     if(!state.blobs.done){ showErr('done'); ok=false; bad.push($('.file-zone[data-slot="done"]')); }
   } else if(state.branch==='no'){
     if(!$("#locNote").value.trim()){ showErr('locNote'); ok=false; bad.push($("#locNote")); }
@@ -489,6 +519,7 @@ function validate(){
     if(!state.blobs.near){ showErr('near'); ok=false; bad.push($('.file-zone[data-slot="near"]')); }
   }
   if(!perimData()){ showErr('shape'); ok=false; bad.push($("#shape")); }
+  if(parseFlatbar($("#flatbar").value).state==='invalid'){ showErr('flatbar'); ok=false; bad.push($("#flatbar")); }
   if(!ok && bad[0]) bad[0].scrollIntoView({behavior:'smooth',block:'center'});
   return ok;
 }
@@ -515,7 +546,7 @@ async function insertRow(row){
 /* 送出 */
 $("#submitBtn").addEventListener('click', async ()=>{
   if(!validate()) return;
-  const p=perimData();
+  const p=perimData(), fb=flatbarData();
   const dupKey = state.branch==='yes' ? fullHoleCode() : ($("#area").value+' '+state.gridX+state.gridY);
   if(dupKey && isDupToday(dupKey) && !confirm('「'+dupKey+'」今天已經送出過了。\n確定要再送一次嗎？')) return;
   const ov=$("#overlay"), ovT=$("#ovTitle"); ov.classList.add('show'); $("#submitBtn").disabled=true;
@@ -525,7 +556,8 @@ $("#submitBtn").addEventListener('click', async ()=>{
     area:$("#area").value, grid_x:state.gridX, grid_y:state.gridY,
     shape:state.shape, dia_mm: state.shape==='圓'?parseFloat($("#dia").value):null,
     width_mm: state.shape==='矩'?parseFloat($("#rw").value):null, height_mm: state.shape==='矩'?parseFloat($("#rh").value):null,
-    perimeter_mm:p.mm, size_label:p.label, size_note:$("#sizeNote").value.trim()||null, status:'待寄' };
+    perimeter_mm:p.mm, size_label:p.label, size_note:$("#sizeNote").value.trim()||null,
+    flatbar_raw: fb?fb.normalized:null, flatbar_mm: fb?fb.mm:null, status:'待寄' };
   // 已成功上傳的照片不重傳（重送時跳過，避免孤兒檔）
   async function up(slot, key, label){
     if(state.uploadedKey[slot]) return state.uploadedKey[slot];
@@ -559,6 +591,7 @@ function showReceipt(date, names, p){
   add('施工日期', date); add('廠商', state.vendor); add('樓層／區域', $("#area").value); add('格線','X='+state.gridX+'　Y='+state.gridY);
   if(state.branch==='yes'){ add('完整孔號', fullHoleCode()); } else { add('位置說明', $("#locNote").value.trim()); }
   add('開孔', (state.shape==='圓'?'圓孔 ':'矩形孔 ')+p.label); add('周長', p.mm+' mm（'+(p.mm/1000).toFixed(2)+' m）');
+  const fbR=flatbarData(); if(fbR){ add('扁鐵補修', fbR.mm+' mm（≈ '+Math.round(fbR.mm*FLATBAR_G_PER_MM)+' g）'); }
   if(state.branch==='yes'){ addFile(names.done.work); } else { addFile(names.far.work); addFile(names.near.work); }
   $("#formArea").style.display='none'; $("#receipt").classList.add('show'); window.scrollTo(0,0);
 }
@@ -587,6 +620,7 @@ $("#againBtn").addEventListener('click', ()=>{
   $("#branchA").classList.add('hidden'); $("#branchB").classList.add('hidden'); $("#tail").classList.add('hidden');
   $("#dimCircle").classList.add('hidden'); $("#dimRect").classList.add('hidden'); $("#dia").value=''; $("#rw").value=''; $("#rh").value='';
   $("#perim").classList.add('empty'); $("#perim").textContent='填入尺寸後自動計算周長'; $("#sizeNote").value='';
+  $("#flatbar").value=''; calcFlatbar();
   $$('.field-err').forEach(e=>e.classList.remove('show'));
   $("#submitBtn").disabled=$("#cfgbar").classList.contains('show');
   $("#receipt").classList.remove('show'); $("#formArea").style.display='block'; renderToday(); window.scrollTo(0,0);

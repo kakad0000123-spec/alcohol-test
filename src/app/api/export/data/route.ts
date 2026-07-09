@@ -3,6 +3,7 @@ import * as XLSX from 'xlsx'
 import { createServerClient, TABLE } from '@/lib/supabase'
 import { getAuthUserFromRequest } from '@/lib/auth'
 import { vendorContractor } from '@/lib/access'
+import { flatbarWeightG } from '@/lib/holes'
 
 export const dynamic = 'force-dynamic'
 
@@ -19,6 +20,8 @@ type Row = {
   shape: string | null
   size_label: string | null
   perimeter_mm: number | null
+  flatbar_raw: string | null
+  flatbar_mm: number | null
   photo_done_name: string | null
   photo_far_name: string | null
   photo_near_name: string | null
@@ -63,6 +66,9 @@ export async function GET(req: NextRequest) {
     '尺寸': r.size_label || '',
     '周長(mm)': r.perimeter_mm ?? '',
     '周長(m)': r.perimeter_mm != null ? Math.round(r.perimeter_mm / 10) / 100 : '',
+    '扁鐵補修(mm)': r.flatbar_mm ?? '',
+    '扁鐵重量(g)': flatbarWeightG(r.flatbar_mm) ?? '',
+    '扁鐵算式': r.flatbar_raw || '',
     '完工檔名': r.photo_done_name || '',
     '遠檔名': r.photo_far_name || '',
     '近檔名': r.photo_near_name || '',

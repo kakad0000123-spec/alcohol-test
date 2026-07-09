@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, TABLE } from '@/lib/supabase'
 import { getAuthUserFromRequest } from '@/lib/auth'
 import { isAdmin, ownsContractorRow } from '@/lib/access'
-import { computePerim, fullHoleCode, serial3 } from '@/lib/holes'
+import { computePerim, fullHoleCode, serial3, parseFlatbar } from '@/lib/holes'
 
 // PATCH /api/records/[id] { status } — 改寄送狀態（superadmin only；廠商不可改狀態）
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
@@ -42,7 +42,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   const db = createServerClient()
   const { data: row, error: readErr } = await db
     .from(TABLE)
-    .select('contractor, knows_hole, area, grid_x, grid_y, serial, shape, dia_mm, width_mm, height_mm')
+    .select('contractor, knows_hole, area, grid_x, grid_y, serial, shape, dia_mm, width_mm, height_mm, flatbar_raw')
     .eq('id', params.id)
     .single()
   if (readErr || !row) return NextResponse.json({ error: '找不到資料' }, { status: 404 })
@@ -75,6 +75,14 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   const perim = computePerim(shape, dia_mm, width_mm, height_mm)
   patch.perimeter_mm = perim?.perimeter_mm ?? null
   patch.size_label = perim?.size_label ?? null
+
+  // 扁鐵：未帶沿用原值；flatbar_mm 一律由伺服器重算（不信任 client 傳的長度）
+  const fb = parseFlatbar(body.flatbar_raw !== undefined ? str(body.flatbar_raw) : row.flatbar_raw)
+  if (fb.state === 'invalid') {
+    return NextResponse.json({ error: '扁鐵格式只能用數字、＋、＊' }, { status: 400 })
+  }
+  patch.flatbar_raw = fb.state === 'ok' ? fb.normalized : null
+  patch.flatbar_mm = fb.state === 'ok' ? fb.mm : null
 
   if (row.knows_hole) {
     const serial = serial3(body.serial !== undefined ? str(body.serial) : row.serial)
