@@ -313,9 +313,9 @@
         <div class="perim empty" id="perim">填入尺寸後自動計算周長</div>
         <div class="field-err" data-for="shape">請選擇開孔形狀並填寫尺寸</div>
         <div style="height:14px"></div>
-        <span class="dl" style="display:block;margin-bottom:6px;">扁鐵補修長度（FB25×4.5，選填）</span>
-        <input type="text" id="flatbar" autocomplete="off" placeholder="例如 8*2+9+20*2（沒有免填）">
-        <div class="perim empty" id="flatbarOut" style="margin-top:11px;">補孔周邊需配合修補的扁鐵，逐段輸入，＊＝同長幾支、＋＝不同段相加</div>
+        <span class="dl" style="display:block;margin-bottom:6px;">扁鐵補修長度（FB25×4.5，單位 mm，選填）</span>
+        <input type="text" id="flatbar" autocomplete="off" placeholder="例：300*2+150（單位 mm，沒有免填）">
+        <div class="perim empty" id="flatbarOut" style="margin-top:11px;">補孔周邊需配合修補的扁鐵，長度以 mm 計、逐段輸入：＊＝同長幾支、＋＝不同段相加</div>
         <div class="field-err" data-for="flatbar">扁鐵格式只能用數字、＋、＊，例如 8*2+9</div>
         <div style="height:14px"></div>
         <span class="dl" style="display:block;margin-bottom:6px;">備註（選填）</span>
@@ -450,7 +450,7 @@ function flatbarData(){ const p=parseFlatbar($("#flatbar").value); return p.stat
 function calcFlatbar(){
   const el=$("#flatbarOut"), p=parseFlatbar($("#flatbar").value);
   if(p.state==='ok'){ const g=Math.round(p.mm*FLATBAR_G_PER_MM); el.classList.remove('empty'); el.innerHTML='扁鐵 ≈ '+p.mm+' mm（<span class="m">≈ '+g+' g</span>）'; clearErr('flatbar'); }
-  else { el.classList.add('empty'); el.textContent='補孔周邊需配合修補的扁鐵，逐段輸入，＊＝同長幾支、＋＝不同段相加'; if(p.state==='invalid') showErr('flatbar'); else clearErr('flatbar'); }
+  else { el.classList.add('empty'); el.textContent='補孔周邊需配合修補的扁鐵，長度以 mm 計、逐段輸入：＊＝同長幾支、＋＝不同段相加'; if(p.state==='invalid') showErr('flatbar'); else clearErr('flatbar'); }
 }
 $("#flatbar").addEventListener('input', calcFlatbar);
 
