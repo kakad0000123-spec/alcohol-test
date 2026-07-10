@@ -52,6 +52,17 @@ export default async function DashboardPage({ searchParams }: { searchParams: Re
   const { data, error } = await q.order('work_date', { ascending: false }).order('created_at', { ascending: false })
   const rows = (data || []) as Row[]
 
+  // 本週 / 累積 完成（獨立於顯示篩選；vendor 已 scoped）
+  const [weekRes, allRes] = await Promise.all([
+    scopeContractor(db.from(TABLE).select('perimeter_mm').gte('work_date', week.start).lte('work_date', week.end), user),
+    scopeContractor(db.from(TABLE).select('perimeter_mm'), user),
+  ])
+  const sumM = (arr: { perimeter_mm: number | null }[] | null) => (arr || []).reduce((s, r) => s + (r.perimeter_mm || 0), 0) / 1000
+  const wkHoles = weekRes.data?.length || 0
+  const wkM = sumM(weekRes.data as { perimeter_mm: number | null }[] | null)
+  const allHoles = allRes.data?.length || 0
+  const allM = sumM(allRes.data as { perimeter_mm: number | null }[] | null)
+
   const paths = rows.flatMap(r => [r.photo_done_path, r.photo_far_path, r.photo_near_path].filter(Boolean) as string[])
   const signed = new Map<string, string>()
   if (paths.length > 0) {
@@ -104,6 +115,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Re
         </form>
 
         <section style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 10 }}>
+          <div style={card}><div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>本週完成</div><div style={{ fontSize: 20, fontWeight: 700 }}>{wkHoles} <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)' }}>孔</span></div><div style={{ fontSize: 13, color: 'var(--accent)', fontWeight: 600 }}>{wkM.toFixed(2)} m</div></div>
+          <div style={card}><div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>累積完成</div><div style={{ fontSize: 20, fontWeight: 700 }}>{allHoles} <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)' }}>孔</span></div><div style={{ fontSize: 13, color: 'var(--accent)', fontWeight: 600 }}>{allM.toFixed(2)} m</div></div>
           <div style={card}><div style={{ fontSize: 22, fontWeight: 700 }}>{rows.length}</div><div style={{ color: 'var(--text-secondary)', fontSize: 12 }}>筆數</div></div>
           <div style={card}><div style={{ fontSize: 22, fontWeight: 700 }}>{pending}</div><div style={{ color: 'var(--text-secondary)', fontSize: 12 }}>待寄</div></div>
           <div style={card}><div style={{ fontSize: 22, fontWeight: 700 }}>{sent}</div><div style={{ color: 'var(--text-secondary)', fontSize: 12 }}>已寄</div></div>

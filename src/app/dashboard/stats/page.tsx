@@ -7,16 +7,12 @@ import { flatbarWeightG, FLATBAR_SPEC } from '@/lib/holes'
 
 export const dynamic = 'force-dynamic'
 
-// 全案目標孔數（暫定，可調）—— 用於 admin 的整體進度％。實際數字待 Po 確認。
-const TARGET_HOLES = 1200
-
 type Row = {
   area: string | null
   perimeter_mm: number | null
   work_date: string | null
   flatbar_mm: number | null
   contractor: string | null
-  status: string | null
 }
 type Agg = { key: string; wHoles: number; wMm: number; tHoles: number; tMm: number; tFb: number }
 
@@ -52,7 +48,7 @@ export default async function StatsPage() {
   const week = getCurrentWeekRange()
 
   const db = createServerClient()
-  let q = db.from(TABLE).select('area, perimeter_mm, work_date, flatbar_mm, contractor, status')
+  let q = db.from(TABLE).select('area, perimeter_mm, work_date, flatbar_mm, contractor')
   q = scopeContractor(q, user)            // vendor 只統計自己 contractor
   const { data, error } = await q
   const rows = (data || []) as Row[]
@@ -60,7 +56,7 @@ export default async function StatsPage() {
   // 各區域彙總
   const map = new Map<string, Agg>()
   const contractors = new Map<string, Agg>()
-  const totals = { wHoles: 0, wMm: 0, tHoles: 0, tMm: 0, tFb: 0, pending: 0, sent: 0 }
+  const totals = { wHoles: 0, wMm: 0, tHoles: 0, tMm: 0, tFb: 0 }
   for (const r of rows) {
     const inWeek = !!r.work_date && r.work_date >= week.start && r.work_date <= week.end
     const mm = r.perimeter_mm || 0
@@ -80,7 +76,6 @@ export default async function StatsPage() {
 
     totals.tHoles += 1; totals.tMm += mm; totals.tFb += fb
     if (inWeek) { totals.wHoles += 1; totals.wMm += mm }
-    if (r.status === '已寄') totals.sent += 1; else totals.pending += 1
   }
   const aggs = Array.from(map.values()).sort((x, y) => y.tMm - x.tMm)
   const conAggs = Array.from(contractors.values()).sort((x, y) => y.tHoles - x.tHoles)
@@ -94,8 +89,6 @@ export default async function StatsPage() {
   }))
   const maxTrend = Math.max(1, ...trend.map(t => t.holes))
 
-  const pct = Math.min(100, Math.round(totals.tHoles / TARGET_HOLES * 100))
-
   return (
     <>
       <Nav user={user} />
@@ -107,25 +100,11 @@ export default async function StatsPage() {
 
         {error && <p style={{ color: '#f87171' }}>讀取失敗：{error.message}</p>}
 
-        {/* admin：整體進度 vs 目標 */}
-        {admin && (
-          <section style={{ ...card, margin: '16px 0 0', minWidth: 0 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 8 }}>
-              <span style={capt}>整體進度（目標暫定 {TARGET_HOLES} 孔，可調）</span>
-              <span style={accent}>{totals.tHoles} / {TARGET_HOLES}　{pct}%</span>
-            </div>
-            <div style={{ background: 'var(--bg-primary)', borderRadius: 6, height: 14, overflow: 'hidden', border: '1px solid var(--border)', marginTop: 8 }}>
-              <div style={{ width: `${pct}%`, height: '100%', background: 'var(--accent)', minWidth: totals.tHoles > 0 ? 2 : 0 }} />
-            </div>
-          </section>
-        )}
-
         {/* 總覽卡片 */}
         <section style={{ display: 'flex', gap: 12, flexWrap: 'wrap', margin: '16px 0' }}>
           <div style={card}><div style={capt}>本週完成</div><div style={big}>{totals.wHoles} <span style={unit}>孔</span></div><div style={accent}>{m(totals.wMm)} m</div></div>
           <div style={card}><div style={capt}>累積完成</div><div style={big}>{totals.tHoles} <span style={unit}>孔</span></div><div style={accent}>{m(totals.tMm)} m</div></div>
           <div style={card}><div style={capt}>累積扁鐵（{FLATBAR_SPEC}）</div><div style={big}>{m(totals.tFb)} <span style={unit}>m</span></div><div style={accent}>約 {kg(totals.tFb)} kg</div></div>
-          <div style={card}><div style={capt}>寄送狀態</div><div style={{ ...big, fontSize: 20 }}>待寄 {totals.pending}<span style={{ ...unit, margin: '0 6px' }}>/</span>已寄 {totals.sent}</div></div>
         </section>
 
         {/* 近 8 週趨勢 */}
