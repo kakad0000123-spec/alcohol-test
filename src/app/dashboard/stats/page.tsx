@@ -162,7 +162,7 @@ export default async function StatsPage() {
                 <th style={numh}>累積孔</th>
                 <th style={numh}>累積米</th>
                 <th style={numh}>扁鐵 m</th>
-                <th style={{ ...th, width: '28%' }}>累積進度</th>
+                <th style={{ ...th, width: '28%' }}>累積量（相對）</th>
               </tr></thead>
               <tbody>
                 {aggs.map(a => (
@@ -195,7 +195,7 @@ export default async function StatsPage() {
             </table>
           </div>
         )}
-        <p style={{ color: 'var(--text-secondary)', fontSize: 12, marginTop: 10 }}>※ 孔＝上傳筆數；米＝周長合計（perimeter_mm÷1000）；扁鐵＝{FLATBAR_SPEC} 長度合計，重量約算（{'0.883'} kg/m）。本週依施工日期落在 {week.start}～{week.end}（台灣時間）。</p>
+        <p style={{ color: 'var(--text-secondary)', fontSize: 12, marginTop: 10 }}>※ 孔＝上傳筆數；米＝周長合計（perimeter_mm÷1000）；扁鐵＝{FLATBAR_SPEC} 長度合計，重量約算（{'0.883'} kg/m）。「累積量（相對）」長條為各區互相比較（滿格＝累積米最多的區），非完成率。本週依施工日期落在 {week.start}～{week.end}（台灣時間）。</p>
       </main>
     </>
   )
