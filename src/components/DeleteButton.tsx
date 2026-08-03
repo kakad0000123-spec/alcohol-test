@@ -19,7 +19,7 @@ export default function DeleteButton({ id }: { id: string }) {
     })
     if (res.ok) { router.push('/dashboard'); router.refresh() }
     else {
-      // 顯示伺服器的實際理由（例如這筆剛被標成已寄），不要一律「刪除失敗」讓人不知道下一步
+      // 顯示伺服器的實際理由（例如這筆剛被標成已請款），不要一律「刪除失敗」讓人不知道下一步
       setBusy(false)
       const d = await res.json().catch(() => ({}))
       alert(d.error || '刪除失敗')

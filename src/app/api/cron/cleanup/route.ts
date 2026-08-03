@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, TABLE, BUCKET } from '@/lib/supabase'
 
 // POST /api/cron/cleanup — 兩週緩衝清除（HANDOFF §8 step 9 / §9）
-// 找出「已寄出且 sent_at 超過 14 天」的記錄，刪 Storage 私照，並把 3 個 path 欄位設為 NULL（保留資料列）。
+// 找出「sent_at（＝標記已請款的時間）超過 14 天」的記錄，刪 Storage 私照，把 3 個 path 欄位設為 NULL（保留資料列）。
+// ⚠️ 2026-08-03 起語意是「請款後 14 天刪照片」（原為寄件後）。Po 判斷可接受：廠商要計價時本來就得
+// 提供表單資料與照片，手上會有備份。欄位名 sent_at 是寄件時代留下的，未改名。
 // 由 Vercel Cron 觸發，middleware 已用 CRON_SECRET 擋。
 export async function POST(req: NextRequest) {
   const authHeader = req.headers.get('authorization')

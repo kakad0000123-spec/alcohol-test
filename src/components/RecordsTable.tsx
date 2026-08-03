@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import PhotoCell from './PhotoCell'
+import { isBilled, STATUS_BILLED, STATUS_UNBILLED } from '@/lib/status'
 
 export type RecordRow = {
   id: string
@@ -28,11 +29,11 @@ const ghost: React.CSSProperties = { background: 'transparent', border: '1px sol
 const danger: React.CSSProperties = { background: '#b91c1c', border: 'none', color: '#fff', borderRadius: 6, padding: '6px 12px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }
 
 function Badge({ status }: { status: string }) {
-  const sent = status === '已寄'
-  return <span style={{ fontSize: 12, fontWeight: 600, padding: '2px 8px', borderRadius: 99, background: sent ? 'rgba(74,222,128,.15)' : 'rgba(251,146,60,.15)', color: sent ? '#4ade80' : '#fb923c' }}>{sent ? '已寄' : '待寄'}</span>
+  const billed = isBilled(status)
+  return <span style={{ fontSize: 12, fontWeight: 600, padding: '2px 8px', borderRadius: 99, background: billed ? 'rgba(74,222,128,.15)' : 'rgba(251,146,60,.15)', color: billed ? '#4ade80' : '#fb923c' }}>{billed ? STATUS_BILLED : STATUS_UNBILLED}</span>
 }
 
-// canManage：superadmin 才有勾選/批次（標記已寄/待寄/刪除）；vendor 只能看 + 進明細編輯。
+// canManage：superadmin 才有勾選/批次（標記已請款/未請款/刪除）；vendor 只能看 + 進明細編輯。
 export default function RecordsTable({ rows, canManage = false }: { rows: RecordRow[]; canManage?: boolean }) {
   const [sel, setSel] = useState<Set<string>>(new Set())
   const [busy, setBusy] = useState(false)
@@ -60,8 +61,8 @@ export default function RecordsTable({ rows, canManage = false }: { rows: Record
       {canManage && sel.size > 0 && (
         <div style={{ position: 'sticky', top: 0, zIndex: 5, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 14px', marginTop: 8 }}>
           <span style={{ fontSize: 14 }}>已選 <b>{sel.size}</b> 筆</span>
-          <button disabled={busy} onClick={() => batch('已寄')} style={barBtn}>標記已寄</button>
-          <button disabled={busy} onClick={() => batch('待寄')} style={ghost}>標記待寄</button>
+          <button disabled={busy} onClick={() => batch(STATUS_BILLED)} style={barBtn}>標記已請款</button>
+          <button disabled={busy} onClick={() => batch(STATUS_UNBILLED)} style={ghost}>改回未請款</button>
           {!confirmDel ? (
             <button disabled={busy} onClick={() => setConfirmDel(true)} style={danger}>刪除…</button>
           ) : (

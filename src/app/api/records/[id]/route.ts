@@ -3,20 +3,22 @@ import { createServerClient, TABLE } from '@/lib/supabase'
 import { getAuthUserFromRequest } from '@/lib/auth'
 import { isAdmin, ownsContractorRow } from '@/lib/access'
 import { computePerim, fullHoleCode, serial3, parseFlatbar, SHAPE_NONE, isNoHole } from '@/lib/holes'
+import { STATUS_BILLED, STATUS_UNBILLED } from '@/lib/status'
 
-// PATCH /api/records/[id] { status } — 改寄送狀態（superadmin only；廠商不可改狀態）
+// PATCH /api/records/[id] { status } — 改請款狀態（superadmin only；請款判定由 Po 按）
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const user = await getAuthUserFromRequest(req)
   if (!isAdmin(user)) return NextResponse.json({ error: '權限不足' }, { status: 403 })
 
   const body = await req.json().catch(() => ({}))
   const status = body.status
-  if (status !== '待寄' && status !== '已寄') {
+  if (status !== STATUS_UNBILLED && status !== STATUS_BILLED) {
     return NextResponse.json({ error: '狀態值不合法' }, { status: 400 })
   }
   const db = createServerClient()
   const patch: Record<string, unknown> = { status }
-  patch.sent_at = status === '已寄' ? new Date().toISOString() : null
+  // sent_at 存的是「標記已請款的時間」；cron/cleanup 以它為準在 14 天後刪照片
+  patch.sent_at = status === STATUS_BILLED ? new Date().toISOString() : null
 
   const { error } = await db.from(TABLE).update(patch).eq('id', params.id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, TABLE, BUCKET } from '@/lib/supabase'
 import { getAuthUserFromRequest } from '@/lib/auth'
 import { isAdmin, ownsContractorRow } from '@/lib/access'
+import { isBilled, STATUS_BILLED, STATUS_UNBILLED } from '@/lib/status'
 
-// POST /api/records/batch { ids: string[], op: '已寄' | '待寄' | 'delete' }
-// - 改狀態：superadmin only（廠商不可改寄送狀態）
-// - 刪除：superadmin 全可；vendor 限「自己廠商 + 尚未寄出」的紀錄
+// POST /api/records/batch { ids: string[], op: '已請款' | '未請款' | 'delete' }
+// - 改狀態：superadmin only（請款判定由 Po 按，廠商不可改）
+// - 刪除：superadmin 全可；vendor 限「自己廠商 + 尚未請款」的紀錄
 export async function POST(req: NextRequest) {
   const user = await getAuthUserFromRequest(req)
   if (!user) return NextResponse.json({ error: '請先登入' }, { status: 401 })
@@ -36,9 +37,9 @@ export async function POST(req: NextRequest) {
         if (!ownsContractorRow(user, t.contractor)) {
           return NextResponse.json({ error: '權限不足' }, { status: 403 })
         }
-        // 已寄＝公司端已收到的請款憑證，不該由廠商單方面刪掉（照片一併沒了、不可復原）
-        if (t.status === '已寄') {
-          return NextResponse.json({ error: '已寄出的紀錄不能自行刪除，請聯絡管理員' }, { status: 403 })
+        // 已請款＝已經算進請款單的憑證，不該由廠商單方面刪掉（照片一併沒了、不可復原）
+        if (isBilled(t.status)) {
+          return NextResponse.json({ error: '已請款的紀錄不能自行刪除，請聯絡管理員' }, { status: 403 })
         }
       }
     }
@@ -52,9 +53,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, deleted: targetIds.length })
   }
 
-  if (op === '已寄' || op === '待寄') {
+  if (op === STATUS_BILLED || op === STATUS_UNBILLED) {
     if (!isAdmin(user)) return NextResponse.json({ error: '權限不足' }, { status: 403 })
-    const patch = { status: op, sent_at: op === '已寄' ? new Date().toISOString() : null }
+    // sent_at 存的是「標記已請款的時間」（欄位名是寄件時代留下的，見 CORE_RULES）。
+    // cron/cleanup 以它為準，在 14 天後刪掉 Storage 照片。
+    const patch = { status: op, sent_at: op === STATUS_BILLED ? new Date().toISOString() : null }
     const { error } = await db.from(TABLE).update(patch).in('id', targetIds)
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     return NextResponse.json({ success: true, updated: targetIds.length })

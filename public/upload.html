@@ -587,7 +587,7 @@ $("#submitBtn").addEventListener('click', async ()=>{
     shape:state.shape, dia_mm: state.shape==='圓'?parseFloat($("#dia").value):null,
     width_mm: state.shape==='矩'?parseFloat($("#rw").value):null, height_mm: state.shape==='矩'?parseFloat($("#rh").value):null,
     perimeter_mm:p.mm, size_label:p.label, size_note:$("#sizeNote").value.trim()||null,
-    flatbar_raw: fb?fb.normalized:null, flatbar_mm: fb?fb.mm:null, status:'待寄' };
+    flatbar_raw: fb?fb.normalized:null, flatbar_mm: fb?fb.mm:null, status:'未請款' };
   // 已成功上傳的照片不重傳（重送時跳過，避免孤兒檔）
   async function up(slot, key, label){
     if(state.uploadedKey[slot]) return state.uploadedKey[slot];

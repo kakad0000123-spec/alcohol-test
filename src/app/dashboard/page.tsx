@@ -6,6 +6,7 @@ import { getCurrentWeekRange } from '@/lib/utils'
 import { getAuthUser } from '@/lib/auth'
 import { scopeContractor, isAdmin } from '@/lib/access'
 import { isNoHole } from '@/lib/holes'
+import { isBilled, statusFilterValues, STATUS_BILLED, STATUS_UNBILLED } from '@/lib/status'
 
 export const dynamic = 'force-dynamic'
 
@@ -47,7 +48,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Re
   const db = createServerClient()
   let q = db.from(TABLE).select('*').gte('work_date', start).lte('work_date', end)
   q = scopeContractor(q, user)                       // vendor 強制只看自己 contractor
-  if (fStatus) q = q.eq('status', fStatus)
+  // 用 .in() 展開新舊值：遷移與部署之間若有殘留舊值（待寄/已寄），篩選才不會漏掉
+  if (fStatus) q = q.in('status', statusFilterValues(fStatus))
   if (fContractor) q = q.eq('contractor', fContractor)
   if (fArea) q = q.eq('area', fArea)
   const { data, error } = await q.order('work_date', { ascending: false }).order('created_at', { ascending: false })
@@ -86,8 +88,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Re
       .filter((x): x is { label: string; url: string } => !!x.url),
   }))
 
-  const pending = rows.filter(r => r.status !== '已寄').length
-  const sent = rows.filter(r => r.status === '已寄').length
+  const unbilled = rows.filter(r => !isBilled(r.status)).length
+  const billed = rows.filter(r => isBilled(r.status)).length
   const zipQs = new URLSearchParams({ start, end, ...(fStatus && { status: fStatus }), ...(fContractor && { contractor: fContractor }), ...(fArea && { area: fArea }) }).toString()
 
   return (
@@ -104,7 +106,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Re
           <span style={{ color: 'var(--text-secondary)' }}>～</span>
           <input type="date" name="end" defaultValue={end} style={inp} />
           <select name="status" defaultValue={fStatus} style={inp}>
-            <option value="">狀態(全部)</option><option value="待寄">待寄</option><option value="已寄">已寄</option>
+            <option value="">狀態(全部)</option><option value={STATUS_UNBILLED}>{STATUS_UNBILLED}</option><option value={STATUS_BILLED}>{STATUS_BILLED}</option>
           </select>
           {admin && (
             <select name="contractor" defaultValue={fContractor} style={inp}>
@@ -122,8 +124,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Re
           <div style={card}><div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>本週完成</div><div style={{ fontSize: 20, fontWeight: 700 }}>{wkHoles} <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)' }}>孔</span></div><div style={{ fontSize: 13, color: 'var(--accent)', fontWeight: 600 }}>{wkM.toFixed(2)} m</div></div>
           <div style={card}><div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>累積完成</div><div style={{ fontSize: 20, fontWeight: 700 }}>{allHoles} <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)' }}>孔</span></div><div style={{ fontSize: 13, color: 'var(--accent)', fontWeight: 600 }}>{allM.toFixed(2)} m</div></div>
           <div style={card}><div style={{ fontSize: 22, fontWeight: 700 }}>{rows.length}</div><div style={{ color: 'var(--text-secondary)', fontSize: 12 }}>筆數</div></div>
-          <div style={card}><div style={{ fontSize: 22, fontWeight: 700 }}>{pending}</div><div style={{ color: 'var(--text-secondary)', fontSize: 12 }}>待寄</div></div>
-          <div style={card}><div style={{ fontSize: 22, fontWeight: 700 }}>{sent}</div><div style={{ color: 'var(--text-secondary)', fontSize: 12 }}>已寄</div></div>
+          <div style={card}><div style={{ fontSize: 22, fontWeight: 700 }}>{unbilled}</div><div style={{ color: 'var(--text-secondary)', fontSize: 12 }}>{STATUS_UNBILLED}</div></div>
+          <div style={card}><div style={{ fontSize: 22, fontWeight: 700 }}>{billed}</div><div style={{ color: 'var(--text-secondary)', fontSize: 12 }}>{STATUS_BILLED}</div></div>
           {rows.length > 0 && (
             <a href={`/api/export/photos?${zipQs}`} style={{ ...card, display: 'flex', alignItems: 'center', textDecoration: 'none', color: 'var(--accent)', fontWeight: 600, fontSize: 14 }}>⬇ 照片打包(zip)</a>
           )}

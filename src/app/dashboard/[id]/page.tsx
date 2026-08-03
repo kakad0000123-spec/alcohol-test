@@ -9,6 +9,7 @@ import { photoFileName, type PhotoKind } from '@/lib/naming'
 import { getAuthUser } from '@/lib/auth'
 import { isAdmin, ownsContractorRow } from '@/lib/access'
 import { flatbarWeightG } from '@/lib/holes'
+import { isBilled } from '@/lib/status'
 
 export const dynamic = 'force-dynamic'
 
@@ -62,13 +63,13 @@ export default async function DetailPage({ params }: { params: { id: string } })
         <Link href="/dashboard" style={{ color: 'var(--text-secondary)', fontSize: 13, textDecoration: 'none' }}>← 回總覽</Link>
         <h1 style={{ fontSize: 20, margin: '8px 0 16px' }}>{r.hole_short || r.location_note || '上傳明細'}</h1>
 
-        {/* 廠商可刪自己填錯的紀錄（上面已擋掉別人廠商的），但已寄出的不行——那是公司端已收到的請款憑證 */}
+        {/* 廠商可刪自己填錯的紀錄（上面已擋掉別人廠商的），但已請款的不行——那已經算進請款單了 */}
         <div style={{ marginBottom: 20, display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
           {admin ? <StatusToggle id={r.id} status={r.status} /> : <span />}
-          {admin || r.status !== '已寄' ? (
+          {admin || !isBilled(r.status) ? (
             <DeleteButton id={r.id} />
           ) : (
-            <span style={{ color: 'var(--text-secondary)', fontSize: 13 }}>已寄出，如需刪除請聯絡管理員</span>
+            <span style={{ color: 'var(--text-secondary)', fontSize: 13 }}>已請款，如需刪除請聯絡管理員</span>
           )}
         </div>
 
