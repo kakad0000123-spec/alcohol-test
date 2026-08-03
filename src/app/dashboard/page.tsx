@@ -5,6 +5,7 @@ import { createServerClient, TABLE, BUCKET } from '@/lib/supabase'
 import { getCurrentWeekRange } from '@/lib/utils'
 import { getAuthUser } from '@/lib/auth'
 import { scopeContractor, isAdmin } from '@/lib/access'
+import { isNoHole } from '@/lib/holes'
 
 export const dynamic = 'force-dynamic'
 
@@ -53,15 +54,18 @@ export default async function DashboardPage({ searchParams }: { searchParams: Re
   const rows = (data || []) as Row[]
 
   // 本週 / 累積 完成（獨立於顯示篩選；vendor 已 scoped）
+  // 孔數的排除規則必須與 /dashboard/stats 一致，否則兩頁數字對不上、看起來像系統壞了。
   const [weekRes, allRes] = await Promise.all([
-    scopeContractor(db.from(TABLE).select('perimeter_mm').gte('work_date', week.start).lte('work_date', week.end), user),
-    scopeContractor(db.from(TABLE).select('perimeter_mm'), user),
+    scopeContractor(db.from(TABLE).select('perimeter_mm, shape').gte('work_date', week.start).lte('work_date', week.end), user),
+    scopeContractor(db.from(TABLE).select('perimeter_mm, shape'), user),
   ])
-  const sumM = (arr: { perimeter_mm: number | null }[] | null) => (arr || []).reduce((s, r) => s + (r.perimeter_mm || 0), 0) / 1000
-  const wkHoles = weekRes.data?.length || 0
-  const wkM = sumM(weekRes.data as { perimeter_mm: number | null }[] | null)
-  const allHoles = allRes.data?.length || 0
-  const allM = sumM(allRes.data as { perimeter_mm: number | null }[] | null)
+  type SumRow = { perimeter_mm: number | null; shape: string | null }
+  const sumM = (arr: SumRow[] | null) => (arr || []).reduce((s, r) => s + (r.perimeter_mm || 0), 0) / 1000
+  const countHoles = (arr: SumRow[] | null) => (arr || []).filter(r => !isNoHole(r.shape)).length
+  const wkHoles = countHoles(weekRes.data as SumRow[] | null)
+  const wkM = sumM(weekRes.data as SumRow[] | null)
+  const allHoles = countHoles(allRes.data as SumRow[] | null)
+  const allM = sumM(allRes.data as SumRow[] | null)
 
   const paths = rows.flatMap(r => [r.photo_done_path, r.photo_far_path, r.photo_near_path].filter(Boolean) as string[])
   const signed = new Map<string, string>()

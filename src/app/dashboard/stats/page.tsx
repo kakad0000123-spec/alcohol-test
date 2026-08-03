@@ -3,7 +3,7 @@ import { createServerClient, TABLE } from '@/lib/supabase'
 import { getCurrentWeekRange } from '@/lib/utils'
 import { getAuthUser } from '@/lib/auth'
 import { scopeContractor, isAdmin } from '@/lib/access'
-import { flatbarWeightG, FLATBAR_SPEC } from '@/lib/holes'
+import { flatbarWeightG, FLATBAR_SPEC, isNoHole } from '@/lib/holes'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,6 +13,7 @@ type Row = {
   work_date: string | null
   flatbar_mm: number | null
   contractor: string | null
+  shape: string | null
 }
 type Agg = { key: string; wHoles: number; wMm: number; tHoles: number; tMm: number; tFb: number }
 
@@ -48,7 +49,7 @@ export default async function StatsPage() {
   const week = getCurrentWeekRange()
 
   const db = createServerClient()
-  let q = db.from(TABLE).select('area, perimeter_mm, work_date, flatbar_mm, contractor')
+  let q = db.from(TABLE).select('area, perimeter_mm, work_date, flatbar_mm, contractor, shape')
   q = scopeContractor(q, user)            // vendor 只統計自己 contractor
   const { data, error } = await q
   const rows = (data || []) as Row[]
@@ -61,21 +62,23 @@ export default async function StatsPage() {
     const inWeek = !!r.work_date && r.work_date >= week.start && r.work_date <= week.end
     const mm = r.perimeter_mm || 0
     const fb = r.flatbar_mm || 0
+    // 無開孔的紀錄不計孔數（它沒有開孔），但扁鐵是實際工作量、照計。
+    const h = isNoHole(r.shape) ? 0 : 1
 
     const area = r.area || '未分區'
     const a = map.get(area) || { key: area, wHoles: 0, wMm: 0, tHoles: 0, tMm: 0, tFb: 0 }
-    a.tHoles += 1; a.tMm += mm; a.tFb += fb
-    if (inWeek) { a.wHoles += 1; a.wMm += mm }
+    a.tHoles += h; a.tMm += mm; a.tFb += fb
+    if (inWeek) { a.wHoles += h; a.wMm += mm }
     map.set(area, a)
 
     const cn = r.contractor || '未填'
     const c = contractors.get(cn) || { key: cn, wHoles: 0, wMm: 0, tHoles: 0, tMm: 0, tFb: 0 }
-    c.tHoles += 1; c.tMm += mm; c.tFb += fb
-    if (inWeek) { c.wHoles += 1; c.wMm += mm }
+    c.tHoles += h; c.tMm += mm; c.tFb += fb
+    if (inWeek) { c.wHoles += h; c.wMm += mm }
     contractors.set(cn, c)
 
-    totals.tHoles += 1; totals.tMm += mm; totals.tFb += fb
-    if (inWeek) { totals.wHoles += 1; totals.wMm += mm }
+    totals.tHoles += h; totals.tMm += mm; totals.tFb += fb
+    if (inWeek) { totals.wHoles += h; totals.wMm += mm }
   }
   const aggs = Array.from(map.values()).sort((x, y) => y.tMm - x.tMm)
   const conAggs = Array.from(contractors.values()).sort((x, y) => y.tHoles - x.tHoles)
@@ -85,7 +88,7 @@ export default async function StatsPage() {
   const weeks = lastNWeeks(week.start, 8)
   const trend = weeks.map(w => ({
     label: w.label,
-    holes: rows.filter(r => r.work_date && r.work_date >= w.start && r.work_date <= w.end).length,
+    holes: rows.filter(r => !isNoHole(r.shape) && r.work_date && r.work_date >= w.start && r.work_date <= w.end).length,
   }))
   const maxTrend = Math.max(1, ...trend.map(t => t.holes))
 
@@ -195,7 +198,7 @@ export default async function StatsPage() {
             </table>
           </div>
         )}
-        <p style={{ color: 'var(--text-secondary)', fontSize: 12, marginTop: 10 }}>※ 孔＝上傳筆數；米＝周長合計（perimeter_mm÷1000）；扁鐵＝{FLATBAR_SPEC} 長度合計，重量約算（{'0.883'} kg/m）。「累積量（相對）」長條為各區互相比較（滿格＝累積米最多的區），非完成率。本週依施工日期落在 {week.start}～{week.end}（台灣時間）。</p>
+        <p style={{ color: 'var(--text-secondary)', fontSize: 12, marginTop: 10 }}>※ 孔＝有開孔的上傳筆數（標記「無開孔（僅補扁鐵）」的不計入孔數，但扁鐵照計）；米＝周長合計（perimeter_mm÷1000）；扁鐵＝{FLATBAR_SPEC} 長度合計，重量約算（{'0.883'} kg/m）。「累積量（相對）」長條為各區互相比較（滿格＝累積米最多的區），非完成率。本週依施工日期落在 {week.start}～{week.end}（台灣時間）。</p>
       </main>
     </>
   )

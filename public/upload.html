@@ -300,6 +300,7 @@
         <div class="opts" id="shape">
           <label class="opt"><span class="dot"></span><input type="radio" name="shape" value="圓">圓孔</label>
           <label class="opt"><span class="dot"></span><input type="radio" name="shape" value="矩">矩形孔</label>
+          <label class="opt"><span class="dot"></span><input type="radio" name="shape" value="無開孔">無開孔（僅補扁鐵）</label>
         </div>
         <div id="dimCircle" class="hidden">
           <div class="dimrow"><div class="dimcell"><span class="dl">直徑 D</span><div class="wrap-in"><input type="number" inputmode="numeric" id="dia" min="1" placeholder="例如 300"><span class="unit">mm</span></div></div></div>
@@ -313,7 +314,7 @@
         <div class="perim empty" id="perim">填入尺寸後自動計算周長</div>
         <div class="field-err" data-for="shape">請選擇開孔形狀並填寫尺寸</div>
         <div style="height:14px"></div>
-        <span class="dl" style="display:block;margin-bottom:6px;">扁鐵補修長度（FB25×4.5，單位 mm，選填）</span>
+        <span class="dl" id="flatbarLabel" style="display:block;margin-bottom:6px;">扁鐵補修長度（FB25×4.5，單位 mm，選填）</span>
         <input type="text" id="flatbar" autocomplete="off" placeholder="例：300*2+150（單位 mm，沒有免填）">
         <div class="perim empty" id="flatbarOut" style="margin-top:11px;">補孔周邊需配合修補的扁鐵，長度以 mm 計、逐段輸入：＊＝同長幾支、＋＝不同段相加</div>
         <div class="field-err" data-for="flatbar">扁鐵格式只能用數字、＋、＊，例如 8*2+9</div>
@@ -410,22 +411,39 @@ function updateCode(){
 }
 
 /* 形狀 + 周長 */
+// 第三種形狀：開孔太小不需補強，只補扁鐵。無周長（不是周長為 0），故 perimeter_mm 存 null。
+const SHAPE_NONE='無開孔';
 $$('#shape .opt').forEach(o=>o.addEventListener('click',()=>{
   $$('#shape .opt').forEach(x=>x.classList.remove('sel'));
   o.classList.add('sel'); o.querySelector('input').checked=true; state.shape=o.querySelector('input').value;
   if(state.shape==='圓'){ $("#dimCircle").classList.remove('hidden'); $("#dimRect").classList.add('hidden'); $("#rw").value=''; $("#rh").value=''; }
-  else { $("#dimRect").classList.remove('hidden'); $("#dimCircle").classList.add('hidden'); $("#dia").value=''; }
-  clearErr('shape'); calcPerim();
+  else if(state.shape==='矩'){ $("#dimRect").classList.remove('hidden'); $("#dimCircle").classList.add('hidden'); $("#dia").value=''; }
+  else { $("#dimCircle").classList.add('hidden'); $("#dimRect").classList.add('hidden'); $("#dia").value=''; $("#rw").value=''; $("#rh").value=''; }
+  syncFlatbarRequired(); clearErr('shape'); calcPerim();
 }));
 ['dia','rw','rh'].forEach(id=>$("#"+id).addEventListener('input',()=>{ clearErr('shape'); calcPerim(); }));
+// 無開孔＝工作內容就是扁鐵，沒填等於自相矛盾 → 該選項下扁鐵必填
+function syncFlatbarRequired(){
+  const need=state.shape===SHAPE_NONE;
+  $("#flatbarLabel").textContent='扁鐵補修長度（FB25×4.5，單位 mm，'+(need?'必填':'選填')+'）';
+}
+// 廠商把尺寸填 0＝他想表達「這裡沒開孔」，接住這個意圖而不是丟錯誤給他
+function typedZero(){
+  if(state.shape==='圓') return parseFloat($("#dia").value)===0;
+  if(state.shape==='矩') return parseFloat($("#rw").value)===0 || parseFloat($("#rh").value)===0;
+  return false;
+}
 function perimData(){
+  if(state.shape===SHAPE_NONE){ return {mm:null, label:SHAPE_NONE, none:true, text:'無開孔，僅補扁鐵（不計周長）'}; }
   if(state.shape==='圓'){ const d=parseFloat($("#dia").value); if(d>0){ const mm=Math.round(Math.PI*d*10)/10; return {mm, label:'Ø'+d, text:'周長 ≈ π × '+d+' = '+mm+' mm'}; } }
   else if(state.shape==='矩'){ const w=parseFloat($("#rw").value), h=parseFloat($("#rh").value); if(w>0&&h>0){ const mm=Math.round(2*(w+h)*10)/10; return {mm, label:w+'×'+h, text:'周長 = 2 × ('+w+' + '+h+') = '+mm+' mm'}; } }
   return null;
 }
 function calcPerim(){
   const p=perimData(), el=$("#perim");
-  if(p){ el.classList.remove('empty'); el.innerHTML=p.text+'（<span class="m">≈ '+(p.mm/1000).toFixed(2)+' m</span>）'; }
+  if(p && p.none){ el.classList.remove('empty'); el.textContent=p.text; }
+  else if(p){ el.classList.remove('empty'); el.innerHTML=p.text+'（<span class="m">≈ '+(p.mm/1000).toFixed(2)+' m</span>）'; }
+  else if(typedZero()){ el.classList.remove('empty'); el.innerHTML='開孔太小不需補強嗎？請改選上面的「<b>無開孔（僅補扁鐵）</b>」'; }
   else { el.classList.add('empty'); el.textContent='填入尺寸後自動計算周長'; }
 }
 
@@ -518,8 +536,20 @@ function validate(){
     if(!state.blobs.far){ showErr('far'); ok=false; bad.push($('.file-zone[data-slot="far"]')); }
     if(!state.blobs.near){ showErr('near'); ok=false; bad.push($('.file-zone[data-slot="near"]')); }
   }
-  if(!perimData()){ showErr('shape'); ok=false; bad.push($("#shape")); }
-  if(parseFlatbar($("#flatbar").value).state==='invalid'){ showErr('flatbar'); ok=false; bad.push($("#flatbar")); }
+  if(!perimData()){
+    $('.field-err[data-for="shape"]').textContent = typedZero()
+      ? '開孔太小不需補強的話，請改選「無開孔（僅補扁鐵）」，不要填 0'
+      : '請選擇開孔形狀並填寫尺寸';
+    showErr('shape'); ok=false; bad.push($("#shape"));
+  }
+  const fbP=parseFlatbar($("#flatbar").value);
+  if(fbP.state==='invalid'){
+    $('.field-err[data-for="flatbar"]').textContent='扁鐵格式只能用數字、＋、＊，例如 8*2+9';
+    showErr('flatbar'); ok=false; bad.push($("#flatbar"));
+  } else if(state.shape===SHAPE_NONE && fbP.state!=='ok'){
+    $('.field-err[data-for="flatbar"]').textContent='選了「無開孔」代表這次做的是扁鐵補修，請填扁鐵長度';
+    showErr('flatbar'); ok=false; bad.push($("#flatbar"));
+  }
   if(!ok && bad[0]) bad[0].scrollIntoView({behavior:'smooth',block:'center'});
   return ok;
 }
@@ -578,7 +608,7 @@ $("#submitBtn").addEventListener('click', async ()=>{
     state.names=null; state.uploadedKey={done:null, far:null, near:null};   // 成功後清快取
     const now=new Date(), hhmm=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
     const summary = state.branch==='yes' ? fullHoleCode() : ($("#area").value+' '+state.gridX+state.gridY);
-    pushToday({ ts:Date.now(), d:todayStr(), t:hhmm, vendor:state.vendor, summary, label:(state.shape==='圓'?'圓 ':'矩 ')+p.label, perim:p.mm });
+    pushToday({ ts:Date.now(), d:todayStr(), t:hhmm, vendor:state.vendor, summary, label:p.none?SHAPE_NONE:(state.shape==='圓'?'圓 ':'矩 ')+p.label, perim:p.mm });
     ov.classList.remove('show'); showReceipt(date, names, p);
   }catch(err){ ov.classList.remove('show'); $("#submitBtn").disabled=false; alert((err&&err.message?err.message:'上傳發生問題')+'\n網路恢復後直接再按一次「送出」即可，已上傳的照片不會重傳。'); }
 });
@@ -590,7 +620,8 @@ function showReceipt(date, names, p){
   const addFile=fn=>files.insertAdjacentHTML('beforeend','<div class="fn">'+fn+'</div>');
   add('施工日期', date); add('廠商', state.vendor); add('樓層／區域', $("#area").value); add('格線','X='+state.gridX+'　Y='+state.gridY);
   if(state.branch==='yes'){ add('完整孔號', fullHoleCode()); } else { add('位置說明', $("#locNote").value.trim()); }
-  add('開孔', (state.shape==='圓'?'圓孔 ':'矩形孔 ')+p.label); add('周長', p.mm+' mm（'+(p.mm/1000).toFixed(2)+' m）');
+  if(p.none){ add('開孔', '無開孔（僅補扁鐵）'); }
+  else { add('開孔', (state.shape==='圓'?'圓孔 ':'矩形孔 ')+p.label); add('周長', p.mm+' mm（'+(p.mm/1000).toFixed(2)+' m）'); }
   const fbR=flatbarData(); if(fbR){ add('扁鐵補修', fbR.mm+' mm（≈ '+Math.round(fbR.mm*FLATBAR_G_PER_MM)+' g）'); }
   if(state.branch==='yes'){ addFile(names.done.work); } else { addFile(names.far.work); addFile(names.near.work); }
   $("#formArea").style.display='none'; $("#receipt").classList.add('show'); window.scrollTo(0,0);
@@ -607,7 +638,7 @@ function renderToday(){
   const a=readAll().filter(x=>x.d===todayStr()); const panel=$("#todayPanel");
   if(a.length===0){ panel.style.display='none'; return; }
   panel.style.display='block'; $("#todayCount").textContent=a.length;
-  $("#todayList").innerHTML=a.slice().reverse().map(x=>'<div class="today-item"><div class="ti-top">'+x.t+'　'+x.vendor+'　'+x.summary+'</div><div class="ti-sub">'+x.label+'　周長 '+x.perim+' mm</div></div>').join('');
+  $("#todayList").innerHTML=a.slice().reverse().map(x=>'<div class="today-item"><div class="ti-top">'+x.t+'　'+x.vendor+'　'+x.summary+'</div><div class="ti-sub">'+x.label+(x.perim!=null?'　周長 '+x.perim+' mm':'')+'</div></div>').join('');
 }
 $("#todayHead").addEventListener('click',()=>$("#todayPanel").classList.toggle('open'));
 
@@ -620,7 +651,7 @@ $("#againBtn").addEventListener('click', ()=>{
   $("#branchA").classList.add('hidden'); $("#branchB").classList.add('hidden'); $("#tail").classList.add('hidden');
   $("#dimCircle").classList.add('hidden'); $("#dimRect").classList.add('hidden'); $("#dia").value=''; $("#rw").value=''; $("#rh").value='';
   $("#perim").classList.add('empty'); $("#perim").textContent='填入尺寸後自動計算周長'; $("#sizeNote").value='';
-  $("#flatbar").value=''; calcFlatbar();
+  $("#flatbar").value=''; calcFlatbar(); syncFlatbarRequired();
   $$('.field-err').forEach(e=>e.classList.remove('show'));
   $("#submitBtn").disabled=$("#cfgbar").classList.contains('show');
   $("#receipt").classList.remove('show'); $("#formArea").style.display='block'; renderToday(); window.scrollTo(0,0);

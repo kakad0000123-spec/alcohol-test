@@ -62,12 +62,15 @@ export default async function DetailPage({ params }: { params: { id: string } })
         <Link href="/dashboard" style={{ color: 'var(--text-secondary)', fontSize: 13, textDecoration: 'none' }}>← 回總覽</Link>
         <h1 style={{ fontSize: 20, margin: '8px 0 16px' }}>{r.hole_short || r.location_note || '上傳明細'}</h1>
 
-        {admin && (
-          <div style={{ marginBottom: 20, display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-            <StatusToggle id={r.id} status={r.status} />
+        {/* 廠商可刪自己填錯的紀錄（上面已擋掉別人廠商的），但已寄出的不行——那是公司端已收到的請款憑證 */}
+        <div style={{ marginBottom: 20, display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+          {admin ? <StatusToggle id={r.id} status={r.status} /> : <span />}
+          {admin || r.status !== '已寄' ? (
             <DeleteButton id={r.id} />
-          </div>
-        )}
+          ) : (
+            <span style={{ color: 'var(--text-secondary)', fontSize: 13 }}>已寄出，如需刪除請聯絡管理員</span>
+          )}
+        </div>
 
         <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
           <table style={{ borderCollapse: 'collapse', flex: '1 1 300px', alignSelf: 'flex-start' }}>

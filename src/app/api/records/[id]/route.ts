@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, TABLE } from '@/lib/supabase'
 import { getAuthUserFromRequest } from '@/lib/auth'
 import { isAdmin, ownsContractorRow } from '@/lib/access'
-import { computePerim, fullHoleCode, serial3, parseFlatbar } from '@/lib/holes'
+import { computePerim, fullHoleCode, serial3, parseFlatbar, SHAPE_NONE, isNoHole } from '@/lib/holes'
 
 // PATCH /api/records/[id] { status } — 改寄送狀態（superadmin only；廠商不可改狀態）
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
@@ -59,7 +59,9 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   const grid_x = body.grid_x !== undefined ? str(body.grid_x) : row.grid_x
   const grid_y = body.grid_y !== undefined ? str(body.grid_y) : row.grid_y
   const shapeRaw = body.shape !== undefined ? str(body.shape) : row.shape
-  const shape = shapeRaw === '圓' || shapeRaw === '矩' ? shapeRaw : null
+  // 白名單漏了 SHAPE_NONE 的話，這種紀錄只要被編輯一次（哪怕沒動形狀）shape 就會被靜默清成 null，
+  // 「刻意標記」與「漏填」的區分當場消失 —— 加新形狀時這行一定要一起改。
+  const shape = shapeRaw === '圓' || shapeRaw === '矩' || shapeRaw === SHAPE_NONE ? shapeRaw : null
   const dia_mm = shape === '圓' ? (body.dia_mm !== undefined ? num(body.dia_mm) : row.dia_mm) : null
   const width_mm = shape === '矩' ? (body.width_mm !== undefined ? num(body.width_mm) : row.width_mm) : null
   const height_mm = shape === '矩' ? (body.height_mm !== undefined ? num(body.height_mm) : row.height_mm) : null
@@ -74,12 +76,18 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   // 衍生欄位以同一套規則重算（避免改了尺寸/格線、衍生欄位沒跟著動）
   const perim = computePerim(shape, dia_mm, width_mm, height_mm)
   patch.perimeter_mm = perim?.perimeter_mm ?? null
-  patch.size_label = perim?.size_label ?? null
+  // 無開孔＝沒有周長這個概念（不是周長為 0，存 0 會汙染日後的平均值）；
+  // size_label 照樣寫字，否則列表與 Excel 的「尺寸」欄空白，跟漏填長得一樣。
+  patch.size_label = isNoHole(shape) ? SHAPE_NONE : (perim?.size_label ?? null)
 
   // 扁鐵：未帶沿用原值；flatbar_mm 一律由伺服器重算（不信任 client 傳的長度）
   const fb = parseFlatbar(body.flatbar_raw !== undefined ? str(body.flatbar_raw) : row.flatbar_raw)
   if (fb.state === 'invalid') {
     return NextResponse.json({ error: '扁鐵格式只能用數字、＋、＊' }, { status: 400 })
+  }
+  // 選了「無開孔」卻沒扁鐵＝這筆沒有任何工作量，自相矛盾（前端也擋，這裡是伺服器端的那道）
+  if (isNoHole(shape) && fb.state !== 'ok') {
+    return NextResponse.json({ error: '「無開孔」必須填扁鐵補修長度' }, { status: 400 })
   }
   patch.flatbar_raw = fb.state === 'ok' ? fb.normalized : null
   patch.flatbar_mm = fb.state === 'ok' ? fb.mm : null

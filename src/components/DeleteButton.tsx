@@ -18,7 +18,12 @@ export default function DeleteButton({ id }: { id: string }) {
       body: JSON.stringify({ ids: [id], op: 'delete' }),
     })
     if (res.ok) { router.push('/dashboard'); router.refresh() }
-    else { setBusy(false); alert('刪除失敗') }
+    else {
+      // 顯示伺服器的實際理由（例如這筆剛被標成已寄），不要一律「刪除失敗」讓人不知道下一步
+      setBusy(false)
+      const d = await res.json().catch(() => ({}))
+      alert(d.error || '刪除失敗')
+    }
   }
 
   if (!confirm) return <button onClick={() => setConfirm(true)} style={ghost}>刪除此筆</button>

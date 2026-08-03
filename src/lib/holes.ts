@@ -28,6 +28,17 @@ export function fullHoleCode(
   return null
 }
 
+// 第三種形狀：開孔太小不需補強，只補扁鐵。
+// 存字串（非 null）才分得出「廠商刻意標的」與「漏填/舊資料」；不用 NA 是因為 pandas 等工具
+// 預設會把 'NA'/'N/A' 讀成空值，匯出的 Excel 一經處理就會把這個區分洗掉。
+export const SHAPE_NONE = '無開孔'
+
+// 這筆是否「無開孔」——統計要排除孔數時用這個判準，不要用 perimeter_mm == null，
+// 否則會把真正漏填的紀錄一起藏起來，那些該被看見、該去問廠商。
+export function isNoHole(shape: string | null | undefined): boolean {
+  return shape === SHAPE_NONE
+}
+
 export type PerimResult = { perimeter_mm: number; size_label: string }
 
 // 周長 + 顯示尺寸：圓 πD（label Ø{d}）；矩 2(W+H)（label {w}×{h}）。皆四捨五入到 0.1mm。

@@ -6,13 +6,14 @@ const PUBLIC_PATHS = ['/', '/api/auth', '/upload.html']
 
 // 只有 superadmin 能進的路徑（vendor 一律擋）。
 // 注意：/api/records/[id] 不在此列 —— PUT(編輯) 開放 vendor、PATCH(改狀態) 由 handler 擋。
+// /api/records/batch 也不在此列 —— delete 開放 vendor（限自己廠商 + 未寄出，handler 逐筆驗），
+// 改狀態仍是 superadmin only，由 handler 擋。整條列在這裡會讓 handler 的分流永遠跑不到。
 const SUPERADMIN_PATHS = [
   '/dashboard/settings',
   '/dashboard/users',
   '/api/users',
   '/api/report-config',
   '/api/report-emails',
-  '/api/records/batch',
 ]
 
 export async function middleware(req: NextRequest) {

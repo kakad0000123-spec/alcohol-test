@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { computePerim, fullHoleCode, parseFlatbar, flatbarWeightG } from '@/lib/holes'
+import { computePerim, fullHoleCode, parseFlatbar, flatbarWeightG, SHAPE_NONE, isNoHole } from '@/lib/holes'
 
 export type EditInitial = {
   id: string
@@ -59,6 +59,7 @@ export default function EditRecordForm({ initial }: { initial: EditInitial }) {
 
   async function save() {
     if (parseFlatbar(f.flatbar_raw).state === 'invalid') { setMsg('扁鐵格式只能用數字、＋、＊') ; return }
+    if (isNoHole(f.shape) && parseFlatbar(f.flatbar_raw).state !== 'ok') { setMsg('「無開孔」必須填扁鐵補修長度'); return }
     setBusy(true)
     setMsg('')
     const payload = {
@@ -124,8 +125,15 @@ export default function EditRecordForm({ initial }: { initial: EditInitial }) {
           <option value="">（未選）</option>
           <option value="圓">圓</option>
           <option value="矩">矩</option>
+          <option value={SHAPE_NONE}>無開孔（僅補扁鐵）</option>
         </select>
       </div>
+
+      {isNoHole(f.shape) && (
+        <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '0 0 12px' }}>
+          無開孔：不計周長，扁鐵補修為必填。
+        </p>
+      )}
 
       {f.shape === '圓' && (
         <div style={row}><label style={lab}>直徑 (mm)</label><input type="number" step="any" style={input} value={f.dia_mm} onChange={e => set('dia_mm', e.target.value)} /></div>
